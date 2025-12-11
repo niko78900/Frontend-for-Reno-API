@@ -1,0 +1,19 @@
+<div class="container">
+
+  <h2>Projects</h2>
+
+  <div *ngIf="loading">Loading...</div>
+
+  <div *ngIf="!loading && projects.length === 0">
+    <p>No projects found.</p>
+  </div>
+
+  <ul *ngIf="!loading && projects.length > 0" class="project-list">
+    <li *ngFor="let project of projects" (click)="goToDetails(project.id)">
+      <h3>{{ project.name }}</h3>
+      <p><strong>Address:</strong> {{ project.address }}</p>
+      <p><strong>Progress:</strong> {{ project.progress }}%</p>
+    </li>
+  </ul>
+
+</div>

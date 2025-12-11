@@ -1,0 +1,21 @@
+.container {
+  padding: 20px;
+}
+
+.project-list {
+  list-style: none;
+  padding: 0;
+}
+
+.project-list li {
+  background: #f5f5f5;
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.project-list li:hover {
+  background: #e0e0e0;
+}
