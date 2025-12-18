@@ -1,0 +1,278 @@
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 40px 20px 64px;
+}
+
+.back-link {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  text-decoration: none;
+  color: #64748b;
+  font-size: 0.95rem;
+  margin-bottom: 16px;
+}
+
+.back-link:hover {
+  color: #0f172a;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  margin-bottom: 24px;
+}
+
+.detail-status {
+  margin-top: 16px;
+}
+
+.state-loading {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.state-error {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.3; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0.3; transform: scale(0.9); }
+}
+
+.detail-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+}
+
+.detail-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0 0 6px;
+}
+
+.detail-card__header h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #0f172a;
+}
+
+.badge {
+  background: #f1f5f9;
+  color: #0f172a;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+.badge--muted {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin: 0 0 32px;
+}
+
+.info-grid dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.info-grid dd {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #0f172a;
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+
+.progress__label {
+  display: flex;
+  justify-content: space-between;
+  color: #475569;
+}
+
+.progress__track {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7c3aed, #38bdf8);
+  border-radius: inherit;
+  transition: width 0.3s ease;
+}
+
+.tasks header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tasks h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #0f172a;
+}
+
+.tasks__empty {
+  margin: 0;
+  color: #94a3b8;
+}
+
+.tasks__content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.task-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.task-links li {
+  flex: 1 1 200px;
+}
+
+.task-link {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.task-link:hover {
+  border-color: #cbd5f5;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+}
+
+.task-link--active {
+  border-color: #7c3aed;
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.25);
+}
+
+.status-pill {
+  font-size: 0.8rem;
+  text-transform: capitalize;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.status-pill[data-status="WORKING"] {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.status-pill[data-status="FINISHED"] {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-pill[data-status="CANCELED"] {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.task-detail {
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px;
+  background: #f8fafc;
+}
+
+.task-detail h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 1.2rem;
+}
+
+.task-detail dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.task-detail dt {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.task-detail dd {
+  margin: 0;
+  color: #0f172a;
+}
+
+@media (max-width: 600px) {
+  .detail-card {
+    padding: 24px;
+  }
+
+  .detail-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

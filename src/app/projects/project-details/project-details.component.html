@@ -1,8 +1,111 @@
-<h2>Project Details</h2>
+<section class="page detail">
+  <a routerLink="/projects" class="back-link">&lt; Back to projects</a>
 
-<div *ngIf="project">
-  <p><b>Name:</b> {{ project.name }}</p>
-  <p><b>Address:</b> {{ project.address }}</p>
-  <p><b>Budget:</b> {{ project.budget }}</p>
-  <p><b>Contractor:</b> {{ project.contractorName }}</p>
-</div>
+  <div *ngIf="loading" class="status state-loading detail-status">
+    <span class="dot"></span>
+    <span>Loading project...</span>
+  </div>
+
+  <div *ngIf="!loading && errorMessage" class="status state-error detail-status">
+    {{ errorMessage }}
+  </div>
+
+  <article *ngIf="!loading && !errorMessage && project" class="detail-card">
+    <header class="detail-card__header">
+      <div>
+        <p class="eyebrow">Project</p>
+        <h1>{{ project.name }}</h1>
+      </div>
+      <span class="badge" *ngIf="project.eta">
+        ETA {{ project.eta }} wk{{ project.eta > 1 ? 's' : '' }}
+      </span>
+    </header>
+
+    <dl class="info-grid">
+      <div>
+        <dt>Address</dt>
+        <dd>{{ project.address || 'N/A' }}</dd>
+      </div>
+      <div>
+        <dt>Budget</dt>
+        <dd>{{ project.budget | currency:'USD':'symbol-narrow':'1.0-0' }}</dd>
+      </div>
+      <div>
+        <dt>Contractor</dt>
+        <dd>{{ project.contractorName || project.contractor || 'Unassigned' }}</dd>
+      </div>
+      <div>
+        <dt>Workforce</dt>
+        <dd>{{ workforceCount }} workers</dd>
+      </div>
+    </dl>
+
+    <div class="progress progress--detail">
+      <div class="progress__label">
+        <span>Progress</span>
+        <span>{{ project.progress ?? 0 }}%</span>
+      </div>
+      <div class="progress__track">
+        <div class="progress__fill" [style.width.%]="project.progress ?? 0"></div>
+      </div>
+    </div>
+
+    <section class="tasks">
+      <header>
+        <h2>Tasks</h2>
+        <span class="badge badge--muted">{{ tasks.length }}</span>
+      </header>
+
+      <div *ngIf="tasksLoading" class="status state-loading detail-status">
+        <span class="dot"></span>
+        <span>Loading tasks...</span>
+      </div>
+
+      <div *ngIf="!tasksLoading && tasksError" class="status state-error detail-status">
+        {{ tasksError }}
+      </div>
+
+      <p *ngIf="!tasksLoading && !tasksError && !tasks.length" class="tasks__empty">
+        No tasks have been added to this project yet.
+      </p>
+
+      <div *ngIf="!tasksLoading && !tasksError && tasks.length" class="tasks__content">
+        <ul class="task-links">
+          <li *ngFor="let task of tasks; trackBy: trackByTaskId">
+            <button type="button"
+                    class="task-link"
+                    [class.task-link--active]="task.id === activeTask?.id"
+                    (click)="selectTask(task)">
+              <span>{{ task.name }}</span>
+              <span class="status-pill" [attr.data-status]="task.status">
+                {{ formatStatus(task.status) }}
+              </span>
+            </button>
+          </li>
+        </ul>
+
+        <article *ngIf="activeTask" class="task-detail">
+          <h3>{{ activeTask.name }}</h3>
+          <dl>
+            <div>
+              <dt>Status</dt>
+              <dd>{{ formatStatus(activeTask.status) }}</dd>
+            </div>
+            <div>
+              <dt>Task ID</dt>
+              <dd>{{ activeTask.id }}</dd>
+            </div>
+            <div>
+              <dt>Project ID</dt>
+              <dd>{{ activeTask.projectId }}</dd>
+            </div>
+            <div *ngIf="activeTask.description">
+              <dt>Description</dt>
+              <dd>{{ activeTask.description }}</dd>
+            </div>
+          </dl>
+        </article>
+      </div>
+    </section>
+  </article>
+</section>

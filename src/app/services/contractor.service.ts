@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { Contractor, ContractorExpertise } from '../projects/models/project.model';
 
 @Injectable({
   providedIn: 'root'
@@ -12,18 +13,23 @@ export class ContractorService {
   constructor(private http: HttpClient) {}
 
   // GET ALL CONTRACTORS
-  getAllContractors(): Observable<any[]> {
-    return this.http.get<any[]>(this.apiUrl);
+  getAllContractors(): Observable<Contractor[]> {
+    return this.http.get<Contractor[]>(this.apiUrl);
   }
 
   // GET BY ID
-  getContractorById(id: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/${id}`);
+  getContractorById(id: string): Observable<Contractor> {
+    return this.http.get<Contractor>(`${this.apiUrl}/${id}`);
+  }
+
+  // GET EXPERTISE ENUMS
+  getExpertiseOptions(): Observable<ContractorExpertise[]> {
+    return this.http.get<ContractorExpertise[]>(`${this.apiUrl}/expertise`);
   }
 
   // CREATE CONTRACTOR
-  createContractor(contractor: any): Observable<any> {
-    return this.http.post<any>(this.apiUrl, contractor);
+  createContractor(contractor: Contractor): Observable<Contractor> {
+    return this.http.post<Contractor>(this.apiUrl, contractor);
   }
 
   // DELETE CONTRACTOR

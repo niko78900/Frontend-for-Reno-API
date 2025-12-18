@@ -1,4 +1,4 @@
-<section class="page">
+﻿<section class="page">
   <header class="page-header">
     <p class="eyebrow">Projects</p>
     <h1>Active renovations</h1>
@@ -7,7 +7,7 @@
 
   <div *ngIf="loading" class="status state-loading">
     <span class="dot"></span>
-    <span>Loading projects…</span>
+    <span>Loading projects...</span>
   </div>
 
   <div *ngIf="errorMessage" class="status state-error">
@@ -30,7 +30,7 @@
       <dl class="project-card__meta">
         <div>
           <dt>Address</dt>
-          <dd>{{ project.address || '—' }}</dd>
+          <dd>{{ project.address || 'N/A' }}</dd>
         </div>
         <div>
           <dt>Budget</dt>

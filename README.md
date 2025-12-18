@@ -57,3 +57,12 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+
+## Backend API quick reference
+
+- API stack: Spring Boot + MongoDB, base URL `http://localhost:8080`.
+- Projects (`/api/projects`): list, detail, create, delete, partial updates (name, address, budget, contractor, progress, eta), contractor removal, and task management (`POST /{projectId}/tasks`, `DELETE /{projectId}/tasks/{taskId}`). Responses include both `contractor` (ID) and `contractorName` so the UI can render names without extra lookups.
+- Contractors (`/api/contractors`): list/filter/search, detail, expertise enum lookup (`GET /api/contractors/expertise`), create/update/delete.
+- Tasks (`/api/tasks`): list, detail, by-project lookup, status enum lookup (`GET /api/tasks/statuses`), create/update/delete.
+- IDs are Mongo ObjectIds; enums are uppercase (`JUNIOR/APPRENTICE/SENIOR`, `NOT_STARTED/WORKING/FINISHED/CANCELED`); all write endpoints expect JSON bodies.
+- See `Documentation/API_Testing_Guide.txt` for ready-to-copy Postman payloads that exercise every endpoint.

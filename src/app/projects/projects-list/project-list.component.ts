@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { ProjectService } from '../../services/project.service';
 import { HttpClientModule } from '@angular/common/http';
 import { finalize } from 'rxjs/operators';
+import { Project } from '../models/project.model';
 
 @Component({
   selector: 'app-project-list',
@@ -14,7 +15,7 @@ import { finalize } from 'rxjs/operators';
 })
 export class ProjectListComponent implements OnInit {
 
-  projects: any[] = [];
+  projects: Project[] = [];
   loading = true;
   errorMessage = '';
 
@@ -27,15 +28,18 @@ export class ProjectListComponent implements OnInit {
     this.loadProjects();
   }
 
-  goToDetails(project: any) {
-    const id = project?.id ?? project?._id;
+  goToDetails(project: Project) {
+    const fallbackMongoId = (project as Project & { _id?: string })._id;
+    const id = project?.id ?? fallbackMongoId;
 
     if (!id) {
       console.warn('Project is missing an id field, cannot navigate to details:', project);
       return;
     }
 
-    this.router.navigate(['/projects', id]);
+    this.router.navigate(['/projects', id], {
+      state: { project }
+    });
   }
 
   private loadProjects(): void {
@@ -63,17 +67,24 @@ export class ProjectListComponent implements OnInit {
       });
   }
 
-  private normalizeProjectResponse(data: any): any[] {
+  private normalizeProjectResponse(data: unknown): Project[] {
     if (Array.isArray(data)) {
-      return data;
+      return data as Project[];
     }
 
-    if (Array.isArray(data?.projects)) {
-      return data.projects;
-    }
+    if (typeof data === 'object' && data !== null) {
+      const { projects, data: innerData } = data as {
+        projects?: unknown;
+        data?: unknown;
+      };
 
-    if (Array.isArray(data?.data)) {
-      return data.data;
+      if (Array.isArray(projects)) {
+        return projects as Project[];
+      }
+
+      if (Array.isArray(innerData)) {
+        return innerData as Project[];
+      }
     }
 
     return [];
