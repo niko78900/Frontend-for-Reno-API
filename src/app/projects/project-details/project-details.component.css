@@ -266,6 +266,128 @@
   color: #0f172a;
 }
 
+.settings {
+  margin-bottom: 32px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px;
+  background: #fff;
+}
+
+.settings header {
+  margin-bottom: 16px;
+}
+
+.meta-hint {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.input-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.input-block span {
+  color: #475569;
+  font-weight: 600;
+}
+
+.input-block input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #dbe2f1;
+  font: inherit;
+  color: #0f172a;
+}
+
+.input-block input[type="range"] {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  background: transparent;
+}
+
+.input-block button {
+  align-self: flex-start;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  background: #0f172a;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.input-block button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.contractor-panel {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.contractor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.contractor-panel select {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #dbe2f1;
+  font: inherit;
+}
+
+.primary {
+  padding: 10px 16px;
+  background: linear-gradient(90deg, #7c3aed, #6366f1);
+  border: none;
+  color: #fff;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+  align-self: flex-start;
+}
+
+.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #7c3aed;
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.link-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.error-text {
+  color: #b91c1c;
+  font-size: 0.8rem;
+}
+
 @media (max-width: 600px) {
   .detail-card {
     padding: 24px;

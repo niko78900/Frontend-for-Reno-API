@@ -22,8 +22,8 @@
     <li class="project-card" *ngFor="let project of projects" (click)="goToDetails(project)">
       <div class="project-card__header">
         <h3>{{ project.name }}</h3>
-        <span class="project-card__eta" *ngIf="project.eta">
-          ETA {{ project.eta }} wk{{ project.eta > 1 ? 's' : '' }}
+        <span class="project-card__eta" *ngIf="getEtaDays(project) !== undefined">
+          ETA {{ getEtaDays(project) }} day{{ getEtaDays(project) === 1 ? '' : 's' }}
         </span>
       </div>
 

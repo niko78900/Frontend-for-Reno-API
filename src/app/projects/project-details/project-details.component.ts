@@ -2,14 +2,16 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ProjectService } from '../../services/project.service';
-import { Project, Task } from '../models/project.model';
+import { Project, Task, Contractor, ContractorExpertise } from '../models/project.model';
 import { finalize } from 'rxjs/operators';
 import { TaskService } from '../../services/task.service';
+import { ContractorService } from '../../services/contractor.service';
+import { ReactiveFormsModule, FormBuilder, FormGroup, FormControl } from '@angular/forms';
 
 @Component({
   selector: 'app-project-details',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, ReactiveFormsModule],
   templateUrl: './project-details.component.html',
   styleUrls: ['./project-details.component.css']
 })
@@ -23,13 +25,48 @@ export class ProjectDetailsComponent implements OnInit {
   tasksError = '';
   activeTask?: Task;
 
+  projectForm: FormGroup;
+  contractorControl = new FormControl('');
+  fieldSaving = {
+    name: false,
+    address: false,
+    budget: false,
+    number_of_workers: false,
+    progress: false,
+    eta: false,
+  };
+  contractors: Contractor[] = [];
+  contractorsLoading = false;
+  contractorsError = '';
+  contractorSaving = false;
+  etaDaysDisplay?: number;
+  private pendingContractorId: string | null = null;
+  private baseEtaWeeks: number | null = null;
+
   constructor(
     private route: ActivatedRoute,
     private projectService: ProjectService,
-    private taskService: TaskService
-  ) {}
+    private taskService: TaskService,
+    private contractorService: ContractorService,
+    private fb: FormBuilder
+  ) {
+    this.projectForm = this.fb.group({
+      name: [''],
+      address: [''],
+      budget: [0],
+      number_of_workers: [0],
+      progress: [0],
+      eta: [0],
+    });
+
+    this.contractorControl.valueChanges.subscribe((value) => {
+      this.pendingContractorId = value || null;
+      this.updateEtaDaysDisplayFromState();
+    });
+  }
 
   ngOnInit() {
+    this.loading = true;
     const id = this.route.snapshot.paramMap.get('id')?.trim();
 
     if (!id) {
@@ -38,20 +75,23 @@ export class ProjectDetailsComponent implements OnInit {
       return;
     }
 
-    const stateProject = window.history.state?.project as Project | undefined;
+    const stateProject = window.history.state?.project as (Project & { _id?: string }) | undefined;
+    const matchesStateId = stateProject && ((stateProject.id ?? stateProject._id) === id);
 
-    if (stateProject && stateProject.id === id) {
+    if (matchesStateId) {
       this.project = stateProject;
-      this.loading = false;
+      this.syncFormWithProject();
       this.loadTasks(id);
-      return;
+      this.loadContractors();
     }
 
     this.fetchProject(id);
   }
 
   private fetchProject(id: string): void {
-    this.loading = true;
+    if (!this.project) {
+      this.loading = true;
+    }
     this.errorMessage = '';
 
     this.projectService.getProjectById(id)
@@ -59,7 +99,11 @@ export class ProjectDetailsComponent implements OnInit {
       .subscribe({
         next: (data) => {
           this.project = data;
+          this.captureBaselineEta();
+          this.syncFormWithProject();
+          this.contractorControl.setValue(this.project?.contractor ?? '');
           this.loadTasks(id);
+          this.loadContractors();
         },
         error: (err) => {
           console.error('Failed loading project details', err);
@@ -110,6 +154,178 @@ export class ProjectDetailsComponent implements OnInit {
       ?? 0;
   }
 
+  get currentContractor(): Contractor | undefined {
+    const contractorId = this.pendingContractorId ?? this.project?.contractor;
+
+    if (!contractorId) {
+      return undefined;
+    }
+
+    return this.contractors.find(c => c.id === contractorId);
+  }
+
+  get computedEta(): number | undefined {
+    const baselineEta = this.getBaselineEta();
+    if (baselineEta === undefined) {
+      return undefined;
+    }
+
+    const expertiseFactor = this.getExpertiseFactor(this.currentContractor?.expertise);
+    const workerFactor = this.getWorkerFactor(this.workforceCount);
+    const progressFactor = this.getProgressFactor(this.project?.progress ?? 0);
+    const etaWeeks = baselineEta * expertiseFactor * workerFactor * progressFactor;
+    return Math.max(0, Math.round(etaWeeks * 10) / 10);
+  }
+
+  get computedEtaDays(): number | undefined {
+    const etaWeeks = this.computedEta;
+    if (etaWeeks === undefined) {
+      return undefined;
+    }
+    return Math.max(0, Math.round(etaWeeks * 7));
+  }
+
+  private syncFormWithProject(): void {
+    if (!this.project) {
+      return;
+    }
+
+    const clampedProgress = this.clampProgress(this.project.progress);
+    this.captureBaselineEta();
+    const baselineEta = this.getBaselineEta();
+
+    this.projectForm.patchValue({
+      name: this.project.name ?? '',
+      address: this.project.address ?? '',
+      budget: this.project.budget ?? 0,
+      number_of_workers: this.workforceCount,
+      progress: clampedProgress,
+      eta: baselineEta ?? 0,
+    });
+
+    // Keep local project progress aligned with the capped slider to avoid jumping back to 100.
+    this.project.progress = clampedProgress;
+
+    this.contractorControl.setValue(this.project.contractor ?? '');
+    this.updateEtaDaysDisplayFromState();
+  }
+
+  updateField(field: 'name' | 'address' | 'budget' | 'number_of_workers' | 'progress' | 'eta'): void {
+    if (!this.project?.id) {
+      return;
+    }
+
+    const value = this.projectForm.get(field)?.value;
+    let request$;
+
+    switch (field) {
+      case 'name':
+        request$ = this.projectService.updateProjectName(this.project.id, value);
+        break;
+      case 'address':
+        request$ = this.projectService.updateProjectAddress(this.project.id, value);
+        break;
+      case 'budget':
+        request$ = this.projectService.updateProjectBudget(this.project.id, Number(value));
+        break;
+      case 'progress':
+        const clampedProgress = this.clampProgress(value);
+        this.projectForm.get('progress')?.setValue(clampedProgress, { emitEvent: false });
+        request$ = this.projectService.updateProjectProgress(this.project.id, clampedProgress);
+        break;
+      case 'number_of_workers':
+        request$ = this.projectService.updateProjectWorkers(this.project.id, Number(value));
+        break;
+      case 'eta':
+        const etaValue = Number(value ?? 0);
+        request$ = this.projectService.updateProjectEta(this.project.id, etaValue);
+        break;
+      default:
+        return;
+    }
+
+    this.fieldSaving[field] = true;
+
+    request$
+      .pipe(finalize(() => this.fieldSaving[field] = false))
+      .subscribe({
+        next: (updated) => {
+          this.project = updated;
+          if (updated.eta !== undefined && updated.eta !== null) {
+            this.baseEtaWeeks = updated.eta;
+          }
+          this.syncFormWithProject();
+        },
+        error: (err) => {
+          console.error(`Failed updating ${field}`, err);
+        }
+      });
+  }
+
+  private loadContractors(): void {
+    this.contractorsLoading = true;
+    this.contractorsError = '';
+
+    this.contractorService.getAllContractors()
+      .pipe(finalize(() => this.contractorsLoading = false))
+      .subscribe({
+        next: (contractors) => {
+          this.contractors = contractors ?? [];
+        },
+        error: (err) => {
+          console.error('Failed loading contractors', err);
+          this.contractorsError = 'Unable to load contractors.';
+        }
+      });
+  }
+
+  applyContractor(): void {
+    if (!this.project?.id) {
+      return;
+    }
+
+    const contractorId = this.contractorControl.value;
+
+    if (!contractorId) {
+      this.clearContractor();
+      return;
+    }
+
+    this.contractorSaving = true;
+    this.projectService.assignProjectContractor(this.project.id, contractorId)
+      .pipe(finalize(() => this.contractorSaving = false))
+      .subscribe({
+        next: (updated) => {
+          this.project = updated;
+          this.pendingContractorId = null;
+          this.syncFormWithProject();
+        },
+        error: (err) => {
+          console.error('Failed assigning contractor', err);
+        }
+      });
+  }
+
+  clearContractor(): void {
+    if (!this.project?.id) {
+      return;
+    }
+    this.contractorSaving = true;
+    this.projectService.removeProjectContractor(this.project.id)
+      .pipe(finalize(() => this.contractorSaving = false))
+      .subscribe({
+        next: (updated) => {
+          this.project = updated;
+          this.pendingContractorId = null;
+          this.contractorControl.setValue('');
+          this.syncFormWithProject();
+        },
+        error: (err) => {
+          console.error('Failed removing contractor', err);
+        }
+      });
+  }
+
   formatStatus(status?: Task['status']): string {
     if (!status) {
       return 'Unknown';
@@ -121,4 +337,78 @@ export class ProjectDetailsComponent implements OnInit {
       .map(segment => segment.charAt(0).toUpperCase() + segment.slice(1))
       .join(' ');
   }
+
+  private updateEtaDaysDisplayFromState(): void {
+    this.etaDaysDisplay = this.calculateDerivedEtaDays();
+  }
+
+  private calculateDerivedEtaDays(): number | undefined {
+    const baselineEta = this.getBaselineEta();
+    if (baselineEta === undefined) {
+      return undefined;
+    }
+
+    const expertiseFactor = this.getExpertiseFactor(this.currentContractor?.expertise);
+    const workerFactor = this.getWorkerFactor(this.workforceCount);
+    const progressFactor = this.getProgressFactor(this.project?.progress ?? 0);
+    const etaWeeks = baselineEta * expertiseFactor * workerFactor * progressFactor;
+
+    return Math.max(0, Math.round(etaWeeks * 7));
+  }
+
+  private getExpertiseFactor(level?: ContractorExpertise): number {
+    switch (level) {
+      case 'SENIOR':
+        return 0.75;
+      case 'APPRENTICE':
+        return 0.95;
+      case 'JUNIOR':
+        return 1.15;
+      default:
+        return 1;
+    }
+  }
+
+  private getWorkerFactor(workers: number): number {
+    if (!workers) {
+      return 1.2;
+    }
+    const baseline = 12;
+    const ratio = baseline / workers;
+
+    return Math.min(1.35, Math.max(0.65, ratio));
+  }
+
+  private getProgressFactor(progress: number): number {
+    const clamped = Math.min(100, Math.max(0, progress));
+    const remaining = 1 - clamped / 100;
+    return Math.max(0.05, remaining);
+  }
+
+  private clampProgress(value: unknown): number {
+    const num = Number(value ?? 0);
+    if (Number.isNaN(num) || num < 0) {
+      return 0;
+    }
+    return Math.min(99, num);
+  }
+
+  private getBaselineEta(): number | undefined {
+    const eta = this.baseEtaWeeks ?? this.project?.eta;
+    if (eta === undefined || eta === null || eta <= 0) {
+      return undefined;
+    }
+    return eta;
+  }
+
+  private captureBaselineEta(): void {
+    if (this.baseEtaWeeks !== null) {
+      return;
+    }
+    const eta = this.project?.eta;
+    if (eta !== undefined && eta !== null && eta > 0) {
+      this.baseEtaWeeks = eta;
+    }
+  }
+
 }
