@@ -50,86 +50,97 @@
       </div>
     </div>
 
-    <section class="settings" [formGroup]="projectForm">
-      <header>
-        <h2>Project Settings</h2>
-        <p class="meta-hint">Adjusting progress, workforce, or contractor expertise recalculates the ETA automatically.</p>
-      </header>
+    <div class="settings-toggle">
+      <button type="button" class="primary" (click)="openSettings()" [disabled]="settingsOpen">
+        Edit project settings
+      </button>
+    </div>
 
-      <div class="settings-grid">
-        <label class="input-block">
-          <span>Name</span>
-          <input type="text" formControlName="name">
-          <button type="button" (click)="updateField('name')" [disabled]="fieldSaving.name">
-            {{ fieldSaving.name ? 'Saving...' : 'Update' }}
-          </button>
-        </label>
-
-        <label class="input-block">
-          <span>Address</span>
-          <input type="text" formControlName="address">
-          <button type="button" (click)="updateField('address')" [disabled]="fieldSaving.address">
-            {{ fieldSaving.address ? 'Saving...' : 'Update' }}
-          </button>
-        </label>
-
-        <label class="input-block">
-          <span>Budget</span>
-          <input type="number" formControlName="budget" min="0">
-          <button type="button" (click)="updateField('budget')" [disabled]="fieldSaving.budget">
-            {{ fieldSaving.budget ? 'Saving...' : 'Update' }}
-          </button>
-        </label>
-
-        <label class="input-block">
-          <span>ETA (weeks, baseline)</span>
-          <input type="number" formControlName="eta" min="0" step="0.1">
-          <button type="button" (click)="updateField('eta')" [disabled]="fieldSaving.eta">
-            {{ fieldSaving.eta ? 'Saving...' : 'Update' }}
-          </button>
-        </label>
-
-        <label class="input-block">
-          <span>Workers</span>
-          <input type="number" formControlName="number_of_workers" min="0">
-          <button type="button" (click)="updateField('number_of_workers')" [disabled]="fieldSaving.number_of_workers">
-            {{ fieldSaving.number_of_workers ? 'Saving...' : 'Update' }}
-          </button>
-        </label>
-
-        <label class="input-block">
-          <span>Progress {{ projectForm.get('progress')?.value }}%</span>
-          <input type="range" formControlName="progress" min="0" max="99">
-          <button type="button" (click)="updateField('progress')" [disabled]="fieldSaving.progress">
-            {{ fieldSaving.progress ? 'Saving...' : 'Update' }}
-          </button>
-        </label>
-      </div>
-
-      <div class="contractor-panel">
-        <div class="contractor-header">
+    <div class="modal-backdrop" *ngIf="settingsOpen" (click)="closeSettings()">
+      <section class="settings settings-modal" [formGroup]="projectForm" (click)="$event.stopPropagation()">
+        <header class="settings-modal__header">
           <div>
-            <p>Assign Contractor</p>
-            <small *ngIf="contractorsLoading">Loading contractors...</small>
-            <small *ngIf="contractorsError" class="error-text">{{ contractorsError }}</small>
+            <h2>Project Settings</h2>
+            <p class="meta-hint">Adjusting progress, workforce, or contractor expertise recalculates the ETA automatically.</p>
           </div>
-          <button type="button" class="link-btn" (click)="clearContractor()" [disabled]="contractorSaving || !project || !project.contractor">
-            Remove
-          </button>
+          <button type="button" class="link-btn" (click)="closeSettings()">Close</button>
+        </header>
+
+        <div class="settings-grid">
+          <label class="input-block">
+            <span>Name</span>
+            <input type="text" formControlName="name">
+            <button type="button" (click)="updateField('name')" [disabled]="fieldSaving.name">
+              {{ fieldSaving.name ? 'Saving...' : 'Update' }}
+            </button>
+          </label>
+
+          <label class="input-block">
+            <span>Address</span>
+            <input type="text" formControlName="address">
+            <button type="button" (click)="updateField('address')" [disabled]="fieldSaving.address">
+              {{ fieldSaving.address ? 'Saving...' : 'Update' }}
+            </button>
+          </label>
+
+          <label class="input-block">
+            <span>Budget</span>
+            <input type="number" formControlName="budget" min="0">
+            <button type="button" (click)="updateField('budget')" [disabled]="fieldSaving.budget">
+              {{ fieldSaving.budget ? 'Saving...' : 'Update' }}
+            </button>
+          </label>
+
+          <label class="input-block">
+            <span>ETA (weeks, baseline)</span>
+            <input type="number" formControlName="eta" min="0" step="0.1">
+            <button type="button" (click)="updateField('eta')" [disabled]="fieldSaving.eta">
+              {{ fieldSaving.eta ? 'Saving...' : 'Update' }}
+            </button>
+          </label>
+
+          <label class="input-block">
+            <span>Workers</span>
+            <input type="number" formControlName="number_of_workers" min="0">
+            <button type="button" (click)="updateField('number_of_workers')" [disabled]="fieldSaving.number_of_workers">
+              {{ fieldSaving.number_of_workers ? 'Saving...' : 'Update' }}
+            </button>
+          </label>
+
+          <label class="input-block">
+            <span>Progress {{ projectForm.get('progress')?.value }}%</span>
+            <input type="range" formControlName="progress" min="0" max="99">
+            <button type="button" (click)="updateField('progress')" [disabled]="fieldSaving.progress">
+              {{ fieldSaving.progress ? 'Saving...' : 'Update' }}
+            </button>
+          </label>
         </div>
 
-        <select [formControl]="contractorControl" [disabled]="contractorsLoading || contractorSaving">
-          <option value="">Unassigned</option>
-          <option *ngFor="let contractor of contractors" [value]="contractor.id">
-            {{ contractor.fullName }} – {{ contractor.expertise }}
-          </option>
-        </select>
+        <div class="contractor-panel">
+          <div class="contractor-header">
+            <div>
+              <p>Assign Contractor</p>
+              <small *ngIf="contractorsLoading">Loading contractors...</small>
+              <small *ngIf="contractorsError" class="error-text">{{ contractorsError }}</small>
+            </div>
+            <button type="button" class="link-btn" (click)="clearContractor()" [disabled]="contractorSaving || !project || !project.contractor">
+              Remove
+            </button>
+          </div>
 
-        <button type="button" class="primary" (click)="applyContractor()" [disabled]="contractorSaving">
-          {{ contractorSaving ? 'Saving...' : 'Save Contractor' }}
-        </button>
-      </div>
-    </section>
+          <select [formControl]="contractorControl" [disabled]="contractorsLoading || contractorSaving">
+            <option value="">Unassigned</option>
+            <option *ngFor="let contractor of contractors" [value]="contractor.id">
+              {{ contractor.fullName }} ƒ?" {{ contractor.expertise }}
+            </option>
+          </select>
+
+          <button type="button" class="primary" (click)="applyContractor()" [disabled]="contractorSaving">
+            {{ contractorSaving ? 'Saving...' : 'Save Contractor' }}
+          </button>
+        </div>
+      </section>
+    </div>
 
     <section class="tasks">
       <header>

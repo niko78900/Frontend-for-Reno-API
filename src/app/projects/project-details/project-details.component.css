@@ -388,6 +388,47 @@
   font-size: 0.8rem;
 }
 
+.settings-toggle {
+  margin: 16px 0 32px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 32px 16px;
+  overflow-y: auto;
+  z-index: 20;
+}
+
+.settings-modal {
+  position: relative;
+  max-width: 840px;
+  width: 100%;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+  animation: pop 0.18s ease-out;
+}
+
+.settings-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.settings-modal .link-btn {
+  padding: 6px 10px;
+}
+
+@keyframes pop {
+  0% { opacity: 0; transform: translateY(8px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 @media (max-width: 600px) {
   .detail-card {
     padding: 24px;

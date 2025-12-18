@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ProjectService } from '../../services/project.service';
-import { Project, Task, Contractor, ContractorExpertise } from '../models/project.model';
+import { Project, Task, Contractor } from '../models/project.model';
 import { finalize } from 'rxjs/operators';
 import { TaskService } from '../../services/task.service';
 import { ContractorService } from '../../services/contractor.service';
@@ -42,6 +42,7 @@ export class ProjectDetailsComponent implements OnInit {
   etaDaysDisplay?: number;
   private pendingContractorId: string | null = null;
   private baseEtaWeeks: number | null = null;
+  settingsOpen = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -86,6 +87,14 @@ export class ProjectDetailsComponent implements OnInit {
     }
 
     this.fetchProject(id);
+  }
+
+  openSettings(): void {
+    this.settingsOpen = true;
+  }
+
+  closeSettings(): void {
+    this.settingsOpen = false;
   }
 
   private fetchProject(id: string): void {
@@ -170,15 +179,12 @@ export class ProjectDetailsComponent implements OnInit {
       return undefined;
     }
 
-    const expertiseFactor = this.getExpertiseFactor(this.currentContractor?.expertise);
-    const workerFactor = this.getWorkerFactor(this.workforceCount);
-    const progressFactor = this.getProgressFactor(this.project?.progress ?? 0);
-    const etaWeeks = baselineEta * expertiseFactor * workerFactor * progressFactor;
-    return Math.max(0, Math.round(etaWeeks * 10) / 10);
+    // Simple weeks value; factors removed so 1 week = 7 days consistently.
+    return Math.max(0, Math.round(baselineEta * 10) / 10);
   }
 
   get computedEtaDays(): number | undefined {
-    const etaWeeks = this.computedEta;
+    const etaWeeks = this.getBaselineEta();
     if (etaWeeks === undefined) {
       return undefined;
     }
@@ -343,46 +349,13 @@ export class ProjectDetailsComponent implements OnInit {
   }
 
   private calculateDerivedEtaDays(): number | undefined {
-    const baselineEta = this.getBaselineEta();
-    if (baselineEta === undefined) {
+    const etaWeeks = this.getBaselineEta();
+    if (etaWeeks === undefined) {
       return undefined;
     }
 
-    const expertiseFactor = this.getExpertiseFactor(this.currentContractor?.expertise);
-    const workerFactor = this.getWorkerFactor(this.workforceCount);
-    const progressFactor = this.getProgressFactor(this.project?.progress ?? 0);
-    const etaWeeks = baselineEta * expertiseFactor * workerFactor * progressFactor;
-
+    // Simple conversion: 1 week = 7 days.
     return Math.max(0, Math.round(etaWeeks * 7));
-  }
-
-  private getExpertiseFactor(level?: ContractorExpertise): number {
-    switch (level) {
-      case 'SENIOR':
-        return 0.75;
-      case 'APPRENTICE':
-        return 0.95;
-      case 'JUNIOR':
-        return 1.15;
-      default:
-        return 1;
-    }
-  }
-
-  private getWorkerFactor(workers: number): number {
-    if (!workers) {
-      return 1.2;
-    }
-    const baseline = 12;
-    const ratio = baseline / workers;
-
-    return Math.min(1.35, Math.max(0.65, ratio));
-  }
-
-  private getProgressFactor(progress: number): number {
-    const clamped = Math.min(100, Math.max(0, progress));
-    const remaining = 1 - clamped / 100;
-    return Math.max(0.05, remaining);
   }
 
   private clampProgress(value: unknown): number {
