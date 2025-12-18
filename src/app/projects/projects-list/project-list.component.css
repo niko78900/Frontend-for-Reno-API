@@ -19,3 +19,8 @@
 .project-list li:hover {
   background: #e0e0e0;
 }
+
+.error {
+  color: #c62828;
+  margin-bottom: 12px;
+}
