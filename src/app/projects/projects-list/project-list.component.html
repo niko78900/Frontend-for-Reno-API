@@ -1,25 +1,56 @@
-<div class="container">
+<section class="page">
+  <header class="page-header">
+    <p class="eyebrow">Projects</p>
+    <h1>Active renovations</h1>
+    <p class="subtitle">Track budget, address, contractor and progress at a glance.</p>
+  </header>
 
-  <h2>Projects</h2>
+  <div *ngIf="loading" class="status state-loading">
+    <span class="dot"></span>
+    <span>Loading projects…</span>
+  </div>
 
-  <div *ngIf="loading">Loading...</div>
-
-  <div *ngIf="errorMessage" class="error">
+  <div *ngIf="errorMessage" class="status state-error">
     {{ errorMessage }}
   </div>
 
-  <div *ngIf="!loading && !errorMessage && projects.length === 0">
-    <p>No projects found.</p>
+  <div *ngIf="!loading && !errorMessage && projects.length === 0" class="status state-empty">
+    No projects found yet. Start by creating your first renovation job.
   </div>
 
-  <ul *ngIf="!loading && !errorMessage && projects.length > 0" class="project-list">
-    <li *ngFor="let project of projects" (click)="goToDetails(project)">
-      <h3>{{ project.name }}</h3>
-      <p><strong>Address:</strong> {{ project.address }}</p>
-      <p><strong>Progress:</strong> {{ project.progress }}%</p>
+  <ul *ngIf="!loading && !errorMessage && projects.length > 0" class="project-grid">
+    <li class="project-card" *ngFor="let project of projects" (click)="goToDetails(project)">
+      <div class="project-card__header">
+        <h3>{{ project.name }}</h3>
+        <span class="project-card__eta" *ngIf="project.eta">
+          ETA {{ project.eta }} wk{{ project.eta > 1 ? 's' : '' }}
+        </span>
+      </div>
+
+      <dl class="project-card__meta">
+        <div>
+          <dt>Address</dt>
+          <dd>{{ project.address || '—' }}</dd>
+        </div>
+        <div>
+          <dt>Budget</dt>
+          <dd>{{ project.budget | currency:'USD':'symbol-narrow':'1.0-0' }}</dd>
+        </div>
+        <div>
+          <dt>Contractor</dt>
+          <dd>{{ project.contractorName || project.contractor || 'Unassigned' }}</dd>
+        </div>
+      </dl>
+
+      <div class="progress">
+        <div class="progress__label">
+          <span>Progress</span>
+          <span>{{ project.progress ?? 0 }}%</span>
+        </div>
+        <div class="progress__track">
+          <div class="progress__fill" [style.width.%]="project.progress ?? 0"></div>
+        </div>
+      </div>
     </li>
   </ul>
-
-  <pre *ngIf="projects">{{ projects | json }}</pre>
-
-</div>
+</section>

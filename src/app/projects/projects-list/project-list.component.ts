@@ -24,7 +24,6 @@ export class ProjectListComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    console.log('ProjectListComponent initialized');
     this.loadProjects();
   }
 
@@ -40,20 +39,16 @@ export class ProjectListComponent implements OnInit {
   }
 
   private loadProjects(): void {
-    console.log('Loading projects...');
     this.loading = true;
     this.errorMessage = '';
 
     this.projectService.getAllProjects()
       .pipe(finalize(() => {
-        console.log('Projects finalize called');
         this.loading = false;
       }))
       .subscribe({
         next: (data) => {
-          console.log('projects response', data);
           const normalizedProjects = this.normalizeProjectResponse(data);
-          console.log('normalized projects', normalizedProjects);
 
           if (!normalizedProjects.length) {
             console.warn('Projects response was empty or unexpected:', data);
