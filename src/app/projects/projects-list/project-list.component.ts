@@ -136,15 +136,47 @@ export class ProjectListComponent implements OnInit, OnDestroy {
   }
 
   private getContractorExpertise(project: Project): ContractorExpertise | undefined {
-    const contractorId = project.contractor;
-    const contractorName = project.contractorName;
+    const contractorId = this.getContractorId(project.contractor as unknown);
+    const contractorName = project.contractorName ?? this.getContractorName(project.contractor as unknown);
     if (!contractorId && !contractorName) {
       return undefined;
     }
-    const match = this.contractors.find(c =>
-      c.id === contractorId || c._id === contractorId || (contractorName ? c.fullName === contractorName : false)
-    );
-    return match?.expertise;
+    if (contractorId) {
+      const matchById = this.contractors.find(c => c.id === contractorId || c._id === contractorId);
+      if (matchById) {
+        return matchById.expertise;
+      }
+    }
+    if (!contractorName) {
+      return undefined;
+    }
+    return this.contractors.find(c => c.fullName === contractorName)?.expertise;
+  }
+
+  private getContractorId(value: unknown): string | undefined {
+    if (typeof value === 'string') {
+      return this.isLikelyObjectId(value) ? value : undefined;
+    }
+    if (!value || typeof value !== 'object') {
+      return undefined;
+    }
+    const candidate = value as { id?: string; _id?: string };
+    return candidate.id ?? candidate._id;
+  }
+
+  private getContractorName(value: unknown): string | undefined {
+    if (typeof value === 'string') {
+      return this.isLikelyObjectId(value) ? undefined : value;
+    }
+    if (!value || typeof value !== 'object') {
+      return undefined;
+    }
+    const candidate = value as { fullName?: string };
+    return candidate.fullName;
+  }
+
+  private isLikelyObjectId(value: string): boolean {
+    return /^[a-fA-F0-9]{24}$/.test(value.trim());
   }
 
 }

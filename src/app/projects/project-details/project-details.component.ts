@@ -63,7 +63,7 @@ export class ProjectDetailsComponent implements OnInit {
     });
 
     this.contractorControl.valueChanges.subscribe((value) => {
-      this.pendingContractorId = value || null;
+      this.pendingContractorId = this.getContractorId(value) ?? null;
       this.updateEtaDaysDisplayFromState();
     });
 
@@ -126,7 +126,6 @@ export class ProjectDetailsComponent implements OnInit {
           this.project = data;
           this.captureBaselineEta();
           this.syncFormWithProject();
-          this.contractorControl.setValue(this.project?.contractor ?? '');
           this.ensureContractorSelection();
           this.loadTasks(id);
           this.loadContractors();
@@ -181,8 +180,10 @@ export class ProjectDetailsComponent implements OnInit {
   }
 
   get currentContractor(): Contractor | undefined {
-    const contractorId = this.pendingContractorId ?? this.contractorControl.value ?? this.project?.contractor;
-    const contractorName = this.project?.contractorName;
+    const contractorId = this.pendingContractorId
+      ?? this.getContractorId(this.contractorControl.value)
+      ?? this.getProjectContractorId();
+    const contractorName = this.getProjectContractorName();
 
     if (contractorId) {
       return this.contractors.find(c => c.id === contractorId || c._id === contractorId);
@@ -229,7 +230,8 @@ export class ProjectDetailsComponent implements OnInit {
     // Keep local project progress aligned with the capped slider to avoid jumping back to 100.
     this.project.progress = clampedProgress;
 
-    this.contractorControl.setValue(this.project.contractor ?? '', { emitEvent: false });
+    const contractorId = this.getProjectContractorId() ?? '';
+    this.contractorControl.setValue(contractorId, { emitEvent: false });
     this.ensureContractorSelection();
     this.updateEtaDaysDisplayFromState();
   }
@@ -327,14 +329,14 @@ export class ProjectDetailsComponent implements OnInit {
       return;
     }
 
-    const contractorId = this.contractorControl.value;
+    const contractorId = this.pendingContractorId ?? this.getContractorId(this.contractorControl.value);
 
     if (!contractorId) {
       this.clearContractor();
       return;
     }
 
-    const selected = this.contractors.find(c => c.id === contractorId);
+    const selected = this.contractors.find(c => c.id === contractorId || c._id === contractorId);
     const contractorPrice = this.toNumber(selected?.price);
     if (this.violatesLaborBudget(this.workforceCount, contractorPrice, this.project?.budget)) {
       this.laborError = this.laborBudgetMessage(this.workforceCount, contractorPrice, this.project?.budget);
@@ -424,8 +426,8 @@ export class ProjectDetailsComponent implements OnInit {
     }
 
     const currentValue = this.contractorControl.value;
-    const projectContractorId = this.project.contractor;
-    const projectContractorName = this.project.contractorName;
+    const projectContractorId = this.getProjectContractorId();
+    const projectContractorName = this.getProjectContractorName();
 
     let resolvedId: string | null = projectContractorId ?? null;
     if (!resolvedId && projectContractorName) {
@@ -437,31 +439,37 @@ export class ProjectDetailsComponent implements OnInit {
       return;
     }
 
-    const currentMatches = this.contractors.some(c =>
-      c.id === currentValue || c._id === currentValue
-    );
-
-    if (!currentMatches) {
+    const currentId = this.getContractorId(currentValue);
+    const isCurrentString = typeof currentValue === 'string';
+    if (!currentId || currentId !== resolvedId || !isCurrentString) {
       this.contractorControl.setValue(resolvedId, { emitEvent: false });
       this.pendingContractorId = null;
     }
   }
 
   private getProjectContractorExpertise(): ContractorExpertise | undefined {
-    const contractorId = this.project?.contractor;
-    const contractorName = this.project?.contractorName;
+    const contractorId = this.getProjectContractorId();
+    const contractorName = this.getProjectContractorName();
     if (!contractorId && !contractorName) {
       return undefined;
     }
-    const match = this.contractors.find(c =>
-      c.id === contractorId || c._id === contractorId || (contractorName ? c.fullName === contractorName : false)
-    );
-    return match?.expertise;
+    if (contractorId) {
+      const matchById = this.contractors.find(c => c.id === contractorId || c._id === contractorId);
+      if (matchById) {
+        return matchById.expertise;
+      }
+    }
+    if (!contractorName) {
+      return undefined;
+    }
+    return this.contractors.find(c => c.fullName === contractorName)?.expertise;
   }
 
   private getActiveContractorPrice(): number {
-    const contractorId = this.pendingContractorId ?? this.contractorControl.value ?? this.project?.contractor;
-    const contractorName = this.project?.contractorName;
+    const contractorId = this.pendingContractorId
+      ?? this.getContractorId(this.contractorControl.value)
+      ?? this.getProjectContractorId();
+    const contractorName = this.getProjectContractorName();
     if (contractorId) {
       const match = this.contractors.find(c => c.id === contractorId || c._id === contractorId);
       return this.toNumber(match?.price);
@@ -472,6 +480,42 @@ export class ProjectDetailsComponent implements OnInit {
     }
     const match = this.contractors.find(c => c.fullName === contractorName);
     return this.toNumber(match?.price);
+  }
+
+  private getProjectContractorId(): string | undefined {
+    return this.getContractorId(this.project?.contractor as unknown);
+  }
+
+  private getProjectContractorName(): string | undefined {
+    const fromField = this.project?.contractorName;
+    const fromContractor = this.getContractorName(this.project?.contractor as unknown);
+    return fromField ?? fromContractor;
+  }
+
+  private getContractorId(value: unknown): string | undefined {
+    if (typeof value === 'string') {
+      return this.isLikelyObjectId(value) ? value : undefined;
+    }
+    if (!value || typeof value !== 'object') {
+      return undefined;
+    }
+    const candidate = value as { id?: string; _id?: string };
+    return candidate.id ?? candidate._id;
+  }
+
+  private getContractorName(value: unknown): string | undefined {
+    if (typeof value === 'string') {
+      return this.isLikelyObjectId(value) ? undefined : value;
+    }
+    if (!value || typeof value !== 'object') {
+      return undefined;
+    }
+    const candidate = value as { fullName?: string };
+    return candidate.fullName;
+  }
+
+  private isLikelyObjectId(value: string): boolean {
+    return /^[a-fA-F0-9]{24}$/.test(value.trim());
   }
 
   private toNumber(value: unknown): number {

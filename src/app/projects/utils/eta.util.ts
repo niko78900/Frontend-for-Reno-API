@@ -28,7 +28,8 @@ export function calculateEtaDays({
   const adjustedBase = Math.max(0, etaAfterWorkers);
   const etaDays = adjustedBase * (1 - progressFraction);
 
-  return Math.max(0, Math.ceil(etaDays));
+  const result = Math.max(0, Math.ceil(etaDays));
+  return result;
 }
 
 function clampProgressFraction(progress: number): number {
