@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { NavigationEnd, Router } from '@angular/router';
+import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { ProjectService } from '../../services/project.service';
 import { HttpClientModule } from '@angular/common/http';
 import { finalize } from 'rxjs/operators';
@@ -10,7 +10,7 @@ import { Subscription, filter } from 'rxjs';
 @Component({
   selector: 'app-project-list',
   standalone: true,
-  imports: [CommonModule, HttpClientModule],
+  imports: [CommonModule, HttpClientModule, RouterModule],
   templateUrl: './project-list.component.html',
   styleUrls: ['./project-list.component.css']
 })
