@@ -41,6 +41,10 @@ export class ProjectListComponent implements OnInit, OnDestroy {
     this.navigationSub?.unsubscribe();
   }
 
+  refreshProjects(): void {
+    this.loadProjects();
+  }
+
   goToDetails(project: Project) {
     const fallbackMongoId = (project as Project & { _id?: string })._id;
     const id = project?.id ?? fallbackMongoId;

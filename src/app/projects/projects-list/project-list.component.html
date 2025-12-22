@@ -1,8 +1,13 @@
 ﻿<section class="page">
   <header class="page-header">
-    <p class="eyebrow">Projects</p>
-    <h1>Active renovations</h1>
-    <p class="subtitle">Track budget, address, contractor and progress at a glance.</p>
+    <div>
+      <p class="eyebrow">Projects</p>
+      <h1>Active renovations</h1>
+      <p class="subtitle">Track budget, address, contractor and progress at a glance.</p>
+    </div>
+    <button type="button" class="refresh-btn" (click)="refreshProjects()" [disabled]="loading">
+      {{ loading ? 'Refreshing...' : 'Refresh' }}
+    </button>
   </header>
 
   <div *ngIf="loading" class="status state-loading">
