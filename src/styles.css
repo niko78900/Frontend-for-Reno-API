@@ -2,6 +2,118 @@
   box-sizing: border-box;
 }
 
+:root {
+  color-scheme: light;
+  --color-bg: #f4f9f3;
+  --color-surface: #ffffff;
+  --color-surface-muted: #eef5ef;
+  --color-surface-subtle: #f7fbf7;
+  --color-text: #0f1b12;
+  --color-text-muted: #4b5b50;
+  --color-text-subtle: #7a8c7d;
+  --color-border: #d8e5db;
+  --color-border-strong: #c4d5c9;
+  --color-accent: #16a34a;
+  --color-accent-strong: #15803d;
+  --color-accent-soft: #dcfce7;
+  --color-accent-gradient: linear-gradient(90deg, #16a34a, #4ade80);
+  --color-accent-gradient-strong: linear-gradient(90deg, #15803d, #22c55e);
+  --color-accent-contrast: #ffffff;
+  --color-accent-glow: rgba(34, 197, 94, 0.25);
+  --color-link: #15803d;
+  --color-link-hover: #166534;
+  --color-status-loading-bg: #ecfdf5;
+  --color-status-loading-text: #047857;
+  --color-status-error-bg: #fee2e2;
+  --color-status-error-text: #b91c1c;
+  --color-status-empty-bg: #e6f2ea;
+  --color-status-empty-text: #1f3b2c;
+  --color-status-working-bg: #fef3c7;
+  --color-status-working-text: #b45309;
+  --color-status-finished-bg: #dcfce7;
+  --color-status-finished-text: #15803d;
+  --color-status-canceled-bg: #fee2e2;
+  --color-status-canceled-text: #b91c1c;
+  --color-progress-track: #dfe8e1;
+  --color-pill-bg: #eef5ef;
+  --color-pill-text: #425148;
+  --color-input-bg: #ffffff;
+  --color-input-border: #d8e5db;
+  --color-input-text: #0f1b12;
+  --color-input-readonly-bg: #f1f6f2;
+  --color-button-solid-bg: #0f2419;
+  --color-button-solid-text: #ffffff;
+  --color-ghost-bg: #f4f9f3;
+  --color-ghost-border: #c4d5c9;
+  --color-ghost-text: #0f1b12;
+  --color-home-bg: radial-gradient(circle at top, #e3f7ea, #f4f9f3 60%);
+  --shadow-card: 0 24px 60px rgba(15, 23, 42, 0.12);
+  --shadow-soft: 0 8px 30px rgba(15, 23, 42, 0.05);
+  --shadow-hover: 0 12px 35px rgba(15, 23, 42, 0.08);
+  --shadow-panel: 0 12px 40px rgba(15, 23, 42, 0.08);
+  --shadow-accent: 0 12px 30px rgba(34, 197, 94, 0.25);
+  --shadow-task-hover: 0 6px 20px rgba(15, 23, 42, 0.08);
+  --shadow-task-active: 0 8px 24px rgba(34, 197, 94, 0.25);
+  --shadow-modal: 0 24px 60px rgba(15, 23, 42, 0.25);
+  --overlay-backdrop: rgba(15, 23, 42, 0.35);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #0b1110;
+  --color-surface: #131f1a;
+  --color-surface-muted: #1a2b23;
+  --color-surface-subtle: #15241d;
+  --color-text: #e3f5eb;
+  --color-text-muted: #b2c6ba;
+  --color-text-subtle: #8fa59a;
+  --color-border: #24372d;
+  --color-border-strong: #2f473a;
+  --color-accent: #34d399;
+  --color-accent-strong: #22c55e;
+  --color-accent-soft: #0f2b20;
+  --color-accent-gradient: linear-gradient(90deg, #22c55e, #34d399);
+  --color-accent-gradient-strong: linear-gradient(90deg, #16a34a, #22c55e);
+  --color-accent-contrast: #ffffff;
+  --color-accent-glow: rgba(16, 185, 129, 0.35);
+  --color-link: #6ee7b7;
+  --color-link-hover: #86efac;
+  --color-status-loading-bg: #0f2a1e;
+  --color-status-loading-text: #6ee7b7;
+  --color-status-error-bg: #3a1212;
+  --color-status-error-text: #fecaca;
+  --color-status-empty-bg: #1a2b23;
+  --color-status-empty-text: #b7d0c1;
+  --color-status-working-bg: #3a2b12;
+  --color-status-working-text: #facc15;
+  --color-status-finished-bg: #123423;
+  --color-status-finished-text: #6ee7b7;
+  --color-status-canceled-bg: #3a1212;
+  --color-status-canceled-text: #fecaca;
+  --color-progress-track: #24362c;
+  --color-pill-bg: #1e3027;
+  --color-pill-text: #d2e7db;
+  --color-input-bg: #0f1a14;
+  --color-input-border: #2b4236;
+  --color-input-text: #e3f5eb;
+  --color-input-readonly-bg: #14221b;
+  --color-button-solid-bg: #1f352a;
+  --color-button-solid-text: #e3f5eb;
+  --color-ghost-bg: #15241d;
+  --color-ghost-border: #2b4236;
+  --color-ghost-text: #e3f5eb;
+  --color-home-bg: radial-gradient(circle at top, #0f2b20, #0b1110 60%);
+  --shadow-card: 0 24px 60px rgba(0, 0, 0, 0.45);
+  --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.35);
+  --shadow-hover: 0 12px 35px rgba(0, 0, 0, 0.45);
+  --shadow-panel: 0 12px 40px rgba(0, 0, 0, 0.4);
+  --shadow-accent: 0 12px 30px rgba(16, 185, 129, 0.25);
+  --shadow-task-hover: 0 6px 20px rgba(0, 0, 0, 0.4);
+  --shadow-task-active: 0 8px 24px rgba(16, 185, 129, 0.35);
+  --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.6);
+  --overlay-backdrop: rgba(5, 10, 8, 0.7);
+}
+
 html, body {
   padding: 0;
   margin: 0;
@@ -9,11 +121,23 @@ html, body {
 
 body {
   font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--color-bg);
+  color: var(--color-text);
   min-height: 100vh;
 }
 
 a {
   color: inherit;
+}
+
+html.theme-transition,
+html.theme-transition * {
+  transition: background-color 250ms ease, color 250ms ease, border-color 250ms ease, box-shadow 250ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-transition,
+  html.theme-transition * {
+    transition: none;
+  }
 }

@@ -1,6 +1,24 @@
 <section class="home">
   <div class="home__card">
-    <p class="eyebrow">Home renovations</p>
+    <div class="home__meta">
+      <p class="eyebrow">Home renovations</p>
+      <div class="theme-switch" role="group" aria-label="Theme">
+        <button type="button"
+                class="theme-option"
+                [class.active]="!isDarkTheme"
+                [attr.aria-pressed]="!isDarkTheme"
+                (click)="setTheme('light')">
+          Light
+        </button>
+        <button type="button"
+                class="theme-option"
+                [class.active]="isDarkTheme"
+                [attr.aria-pressed]="isDarkTheme"
+                (click)="setTheme('dark')">
+          Dark
+        </button>
+      </div>
+    </div>
     <h1>Plan, track, and finish renovations with clarity.</h1>
     <p class="subtitle">Jump straight into active projects and keep budgets, contractors, and timelines aligned.</p>
     <div class="home__actions">

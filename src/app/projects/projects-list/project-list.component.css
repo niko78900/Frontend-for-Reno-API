@@ -16,19 +16,19 @@
   text-transform: uppercase;
   letter-spacing: 0.2em;
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--color-text-subtle);
   margin: 0 0 8px;
 }
 
 .page-header h1 {
   font-size: 2rem;
   margin: 0 0 8px;
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .subtitle {
   margin: 0;
-  color: #475569;
+  color: var(--color-text-muted);
 }
 
 .header-actions {
@@ -40,20 +40,20 @@
 .home-link {
   text-decoration: none;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--color-text);
   padding: 8px 12px;
   border-radius: 999px;
-  border: 1px solid #cbd5f5;
-  background: #fff;
+  border: 1px solid var(--color-ghost-border);
+  background: var(--color-ghost-bg);
 }
 
 .refresh-btn {
   align-self: flex-start;
   padding: 10px 14px;
   border-radius: 999px;
-  border: 1px solid #cbd5f5;
-  background: #f8fafc;
-  color: #0f172a;
+  border: 1px solid var(--color-ghost-border);
+  background: var(--color-ghost-bg);
+  color: var(--color-text);
   cursor: pointer;
   font-weight: 600;
 }
@@ -74,18 +74,18 @@
 }
 
 .state-loading {
-  background: #ede9fe;
-  color: #5b21b6;
+  background: var(--color-status-loading-bg);
+  color: var(--color-status-loading-text);
 }
 
 .state-error {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: var(--color-status-error-bg);
+  color: var(--color-status-error-text);
 }
 
 .state-empty {
-  background: #e2e8f0;
-  color: #1e293b;
+  background: var(--color-status-empty-bg);
+  color: var(--color-status-empty-text);
 }
 
 .dot {
@@ -111,19 +111,19 @@
 }
 
 .project-card {
-  background: #ffffff;
+  background: var(--color-surface);
   border-radius: 16px;
   padding: 20px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.05);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-soft);
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
 }
 
 .project-card:hover {
   transform: translateY(-2px);
-  border-color: #cbd5f5;
-  box-shadow: 0 12px 35px rgba(15, 23, 42, 0.08);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-hover);
 }
 
 .project-card__header {
@@ -137,13 +137,13 @@
 .project-card__header h3 {
   margin: 0;
   font-size: 1.25rem;
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .project-card__eta {
   font-size: 0.9rem;
-  color: #475569;
-  background: #f1f5f9;
+  color: var(--color-text-muted);
+  background: var(--color-surface-muted);
   border-radius: 999px;
   padding: 4px 10px;
 }
@@ -159,14 +159,14 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #94a3b8;
+  color: var(--color-text-subtle);
   margin-bottom: 4px;
 }
 
 .project-card__meta dd {
   margin: 0;
   font-size: 1rem;
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .progress {
@@ -179,19 +179,19 @@
   display: flex;
   justify-content: space-between;
   font-size: 0.9rem;
-  color: #475569;
+  color: var(--color-text-muted);
 }
 
 .progress__track {
   height: 6px;
   border-radius: 999px;
-  background: #e2e8f0;
+  background: var(--color-progress-track);
   overflow: hidden;
 }
 
 .progress__fill {
   height: 100%;
-  background: linear-gradient(90deg, #7c3aed, #38bdf8);
+  background: var(--color-accent-gradient);
   border-radius: inherit;
   transition: width 0.3s ease;
 }

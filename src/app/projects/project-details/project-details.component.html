@@ -109,7 +109,11 @@
 
           <label class="input-block">
             <span>Progress {{ projectForm.get('progress')?.value }}%</span>
-            <input type="range" formControlName="progress" min="0" max="99">
+            <input type="range"
+                   formControlName="progress"
+                   min="0"
+                   max="99"
+                   [style.--range-progress]="(projectForm.get('progress')?.value ?? 0) + '%'">
             <button type="button" (click)="updateField('progress')" [disabled]="fieldSaving.progress">
               {{ fieldSaving.progress ? 'Saving...' : 'Update' }}
             </button>
