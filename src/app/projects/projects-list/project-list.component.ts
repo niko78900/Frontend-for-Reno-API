@@ -2,10 +2,12 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { ProjectService } from '../../services/project.service';
+import { ContractorService } from '../../services/contractor.service';
 import { HttpClientModule } from '@angular/common/http';
 import { finalize } from 'rxjs/operators';
-import { Project } from '../models/project.model';
+import { Project, Contractor, ContractorExpertise } from '../models/project.model';
 import { Subscription, filter } from 'rxjs';
+import { calculateEtaDays } from '../utils/eta.util';
 
 @Component({
   selector: 'app-project-list',
@@ -20,19 +22,23 @@ export class ProjectListComponent implements OnInit, OnDestroy {
   loading = true;
   errorMessage = '';
   private navigationSub?: Subscription;
+  contractors: Contractor[] = [];
 
   constructor(
     private projectService: ProjectService,
+    private contractorService: ContractorService,
     private router: Router
   ) {}
 
   ngOnInit(): void {
     this.loadProjects();
+    this.loadContractors();
     this.navigationSub = this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
       .subscribe((event) => {
         if (event.urlAfterRedirects.startsWith('/projects')) {
           this.loadProjects();
+          this.loadContractors();
         }
       });
   }
@@ -43,6 +49,7 @@ export class ProjectListComponent implements OnInit, OnDestroy {
 
   refreshProjects(): void {
     this.loadProjects();
+    this.loadContractors();
   }
 
   goToDetails(project: Project) {
@@ -84,6 +91,18 @@ export class ProjectListComponent implements OnInit, OnDestroy {
       });
   }
 
+  private loadContractors(): void {
+    this.contractorService.getAllContractors()
+      .subscribe({
+        next: (contractors) => {
+          this.contractors = contractors ?? [];
+        },
+        error: (err) => {
+          console.error('Failed loading contractors:', err);
+        }
+      });
+  }
+
   private normalizeProjectResponse(data: unknown): Project[] {
     if (Array.isArray(data)) {
       return data as Project[];
@@ -108,12 +127,24 @@ export class ProjectListComponent implements OnInit, OnDestroy {
   }
 
   getEtaDays(project: Project): number | undefined {
-    const baselineEta = project.eta;
-    if (baselineEta === undefined || baselineEta === null || baselineEta <= 0) {
+    return calculateEtaDays({
+      baseEtaWeeks: project.eta,
+      workers: project.number_of_workers ?? project.numberOfWorkers ?? 0,
+      progressPercent: project.progress ?? 0,
+      expertise: this.getContractorExpertise(project)
+    });
+  }
+
+  private getContractorExpertise(project: Project): ContractorExpertise | undefined {
+    const contractorId = project.contractor;
+    const contractorName = project.contractorName;
+    if (!contractorId && !contractorName) {
       return undefined;
     }
-
-    // Simple conversion: 1 week = 7 days.
-    return Math.max(0, Math.round(baselineEta * 7));
+    const match = this.contractors.find(c =>
+      c.id === contractorId || c._id === contractorId || (contractorName ? c.fullName === contractorName : false)
+    );
+    return match?.expertise;
   }
+
 }

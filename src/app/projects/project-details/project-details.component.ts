@@ -2,11 +2,12 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ProjectService } from '../../services/project.service';
-import { Project, Task, Contractor } from '../models/project.model';
+import { Project, Task, Contractor, ContractorExpertise } from '../models/project.model';
 import { finalize } from 'rxjs/operators';
 import { TaskService } from '../../services/task.service';
 import { ContractorService } from '../../services/contractor.service';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormControl } from '@angular/forms';
+import { calculateEtaDays } from '../utils/eta.util';
 
 @Component({
   selector: 'app-project-details',
@@ -63,6 +64,16 @@ export class ProjectDetailsComponent implements OnInit {
 
     this.contractorControl.valueChanges.subscribe((value) => {
       this.pendingContractorId = value || null;
+      this.updateEtaDaysDisplayFromState();
+    });
+
+    this.projectForm.get('progress')?.valueChanges.subscribe(() => {
+      this.updateEtaDaysDisplayFromState();
+    });
+    this.projectForm.get('number_of_workers')?.valueChanges.subscribe(() => {
+      this.updateEtaDaysDisplayFromState();
+    });
+    this.projectForm.get('eta')?.valueChanges.subscribe(() => {
       this.updateEtaDaysDisplayFromState();
     });
   }
@@ -170,31 +181,31 @@ export class ProjectDetailsComponent implements OnInit {
   }
 
   get currentContractor(): Contractor | undefined {
-    const contractorId = this.pendingContractorId ?? this.project?.contractor;
+    const contractorId = this.pendingContractorId ?? this.contractorControl.value ?? this.project?.contractor;
+    const contractorName = this.project?.contractorName;
 
-    if (!contractorId) {
+    if (contractorId) {
+      return this.contractors.find(c => c.id === contractorId || c._id === contractorId);
+    }
+
+    if (!contractorName) {
       return undefined;
     }
 
-    return this.contractors.find(c => c.id === contractorId);
+    return this.contractors.find(c => c.fullName === contractorName);
   }
 
   get computedEta(): number | undefined {
-    const baselineEta = this.getBaselineEta();
-    if (baselineEta === undefined) {
+    const etaDays = this.calculateDerivedEtaDays();
+    if (etaDays === undefined) {
       return undefined;
     }
-
-    // Simple weeks value; factors removed so 1 week = 7 days consistently.
-    return Math.max(0, Math.round(baselineEta * 10) / 10);
+    const etaWeeks = etaDays / 7;
+    return Math.max(0, Math.ceil(etaWeeks));
   }
 
   get computedEtaDays(): number | undefined {
-    const etaWeeks = this.getBaselineEta();
-    if (etaWeeks === undefined) {
-      return undefined;
-    }
-    return Math.max(0, Math.round(etaWeeks * 7));
+    return this.calculateDerivedEtaDays();
   }
 
   private syncFormWithProject(): void {
@@ -302,6 +313,7 @@ export class ProjectDetailsComponent implements OnInit {
         next: (contractors) => {
           this.contractors = contractors ?? [];
           this.ensureContractorSelection();
+          this.updateEtaDaysDisplayFromState();
         },
         error: (err) => {
           console.error('Failed loading contractors', err);
@@ -382,13 +394,12 @@ export class ProjectDetailsComponent implements OnInit {
   }
 
   private calculateDerivedEtaDays(): number | undefined {
-    const etaWeeks = this.getBaselineEta();
-    if (etaWeeks === undefined) {
-      return undefined;
-    }
-
-    // Simple conversion: 1 week = 7 days.
-    return Math.max(0, Math.round(etaWeeks * 7));
+    return calculateEtaDays({
+      baseEtaWeeks: this.getBaselineEta(),
+      workers: this.workforceCount,
+      progressPercent: this.project?.progress ?? 0,
+      expertise: this.getProjectContractorExpertise()
+    });
   }
 
   private clampProgress(value: unknown): number {
@@ -436,15 +447,30 @@ export class ProjectDetailsComponent implements OnInit {
     }
   }
 
-  private getActiveContractorPrice(): number {
-    const contractorId = this.pendingContractorId ?? this.contractorControl.value ?? this.project?.contractor;
+  private getProjectContractorExpertise(): ContractorExpertise | undefined {
+    const contractorId = this.project?.contractor;
     const contractorName = this.project?.contractorName;
     if (!contractorId && !contractorName) {
-      return 0;
+      return undefined;
     }
     const match = this.contractors.find(c =>
       c.id === contractorId || c._id === contractorId || (contractorName ? c.fullName === contractorName : false)
     );
+    return match?.expertise;
+  }
+
+  private getActiveContractorPrice(): number {
+    const contractorId = this.pendingContractorId ?? this.contractorControl.value ?? this.project?.contractor;
+    const contractorName = this.project?.contractorName;
+    if (contractorId) {
+      const match = this.contractors.find(c => c.id === contractorId || c._id === contractorId);
+      return this.toNumber(match?.price);
+    }
+
+    if (!contractorName) {
+      return 0;
+    }
+    const match = this.contractors.find(c => c.fullName === contractorName);
     return this.toNumber(match?.price);
   }
 
