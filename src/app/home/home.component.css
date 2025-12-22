@@ -35,6 +35,12 @@
   font-size: 1rem;
 }
 
+.home__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .primary-btn {
   display: inline-flex;
   align-items: center;
@@ -46,6 +52,19 @@
   font-weight: 600;
   text-decoration: none;
   box-shadow: 0 12px 30px rgba(14, 165, 233, 0.25);
+}
+
+.ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  border-radius: 999px;
+  border: 1px solid #cbd5f5;
+  color: #0f172a;
+  font-weight: 600;
+  text-decoration: none;
+  background: #f8fafc;
 }
 
 @media (max-width: 640px) {

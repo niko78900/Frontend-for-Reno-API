@@ -31,6 +31,22 @@
   color: #475569;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-link {
+  text-decoration: none;
+  font-weight: 600;
+  color: #0f172a;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid #cbd5f5;
+  background: #fff;
+}
+
 .refresh-btn {
   align-self: flex-start;
   padding: 10px 14px;

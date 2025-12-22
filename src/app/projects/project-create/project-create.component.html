@@ -1,0 +1,77 @@
+<section class="page create">
+  <a routerLink="/" class="back-link">&lt; Back to home</a>
+
+  <article class="create-card" [formGroup]="projectForm">
+    <header class="create-card__header">
+      <div>
+        <p class="eyebrow">New Project</p>
+        <h1>Create a renovation</h1>
+      </div>
+      <p class="subtitle">Provide the project details and we will set the workforce automatically.</p>
+    </header>
+
+    <div *ngIf="errorMessage" class="status state-error">
+      {{ errorMessage }}
+    </div>
+
+    <div class="settings-grid">
+      <label class="input-block">
+        <span>Name</span>
+        <input type="text" formControlName="name" placeholder="Kitchen refresh">
+      </label>
+
+      <label class="input-block">
+        <span>Address</span>
+        <input type="text" formControlName="address" placeholder="123 Main Street">
+      </label>
+
+      <label class="input-block">
+        <span>Budget</span>
+        <input type="number" formControlName="budget" min="0">
+      </label>
+
+      <label class="input-block">
+        <span>ETA (weeks)</span>
+        <input type="number" formControlName="eta" min="0" step="1">
+      </label>
+
+      <label class="input-block">
+        <span>Workers (auto-assigned)</span>
+        <input type="number" [value]="autoWorkers" readonly aria-readonly="true"
+               (focus)="showWorkersNotice()" (click)="showWorkersNotice()">
+        <small *ngIf="workersNotice" class="hint-text">{{ workersNotice }}</small>
+      </label>
+
+      <label class="input-block">
+        <span>Progress {{ projectForm.get('progress')?.value }}%</span>
+        <input type="range" formControlName="progress" min="0" max="99">
+      </label>
+    </div>
+
+    <div class="contractor-panel">
+      <div class="contractor-header">
+        <div>
+          <p>Assign Contractor</p>
+          <small *ngIf="contractorsLoading">Loading contractors...</small>
+          <small *ngIf="contractorsError" class="error-text">{{ contractorsError }}</small>
+          <small *ngIf="laborError" class="error-text">{{ laborError }}</small>
+        </div>
+      </div>
+
+      <select formControlName="contractor" [disabled]="contractorsLoading">
+        <option value="">Unassigned</option>
+        <option *ngFor="let contractor of contractors"
+                [value]="contractor.id || contractor._id"
+                [disabled]="isContractorOverBudget(contractor)">
+          {{ contractor.fullName }} - {{ contractor.expertise }}
+        </option>
+      </select>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="primary" (click)="createProject()" [disabled]="saving || !!laborError || projectForm.invalid">
+        {{ saving ? 'Creating...' : 'Create project' }}
+      </button>
+    </div>
+  </article>
+</section>

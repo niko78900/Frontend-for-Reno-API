@@ -5,9 +5,12 @@
       <h1>Active renovations</h1>
       <p class="subtitle">Track budget, address, contractor and progress at a glance.</p>
     </div>
-    <button type="button" class="refresh-btn" (click)="refreshProjects()" [disabled]="loading">
-      {{ loading ? 'Refreshing...' : 'Refresh' }}
-    </button>
+    <div class="header-actions">
+      <a routerLink="/" class="home-link">Home</a>
+      <button type="button" class="refresh-btn" (click)="refreshProjects()" [disabled]="loading">
+        {{ loading ? 'Refreshing...' : 'Refresh' }}
+      </button>
+    </div>
   </header>
 
   <div *ngIf="loading" class="status state-loading">

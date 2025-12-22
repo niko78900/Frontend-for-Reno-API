@@ -23,7 +23,7 @@ export class ProjectService {
   }
 
   // CREATE PROJECT
-  createProject(project: Project): Observable<Project> {
+  createProject(project: Partial<Project>): Observable<Project> {
     return this.http.post<Project>(this.apiUrl, project);
   }
 
