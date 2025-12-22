@@ -39,6 +39,7 @@ export class ProjectDetailsComponent implements OnInit {
   contractorsLoading = false;
   contractorsError = '';
   contractorSaving = false;
+  laborError = '';
   etaDaysDisplay?: number;
   private pendingContractorId: string | null = null;
   private baseEtaWeeks: number | null = null;
@@ -91,6 +92,10 @@ export class ProjectDetailsComponent implements OnInit {
 
   openSettings(): void {
     this.settingsOpen = true;
+    if (!this.contractors.length && (this.project?.contractor || this.project?.contractorName)) {
+      this.loadContractors();
+    }
+    this.ensureContractorSelection();
   }
 
   closeSettings(): void {
@@ -111,6 +116,7 @@ export class ProjectDetailsComponent implements OnInit {
           this.captureBaselineEta();
           this.syncFormWithProject();
           this.contractorControl.setValue(this.project?.contractor ?? '');
+          this.ensureContractorSelection();
           this.loadTasks(id);
           this.loadContractors();
         },
@@ -212,7 +218,8 @@ export class ProjectDetailsComponent implements OnInit {
     // Keep local project progress aligned with the capped slider to avoid jumping back to 100.
     this.project.progress = clampedProgress;
 
-    this.contractorControl.setValue(this.project.contractor ?? '');
+    this.contractorControl.setValue(this.project.contractor ?? '', { emitEvent: false });
+    this.ensureContractorSelection();
     this.updateEtaDaysDisplayFromState();
   }
 
@@ -232,7 +239,15 @@ export class ProjectDetailsComponent implements OnInit {
         request$ = this.projectService.updateProjectAddress(this.project.id, value);
         break;
       case 'budget':
-        request$ = this.projectService.updateProjectBudget(this.project.id, Number(value));
+        const clampedBudget = this.clampNonNegative(value, false);
+        this.projectForm.get('budget')?.setValue(clampedBudget, { emitEvent: false });
+        const activeContractorPriceForBudget = this.getActiveContractorPrice();
+        if (this.violatesLaborBudget(this.workforceCount, activeContractorPriceForBudget, clampedBudget)) {
+          this.laborError = this.laborBudgetMessage(this.workforceCount, activeContractorPriceForBudget, clampedBudget);
+          this.projectForm.get('budget')?.setValue(this.project.budget ?? 0, { emitEvent: false });
+          return;
+        }
+        request$ = this.projectService.updateProjectBudget(this.project.id, clampedBudget);
         break;
       case 'progress':
         const clampedProgress = this.clampProgress(value);
@@ -240,10 +255,18 @@ export class ProjectDetailsComponent implements OnInit {
         request$ = this.projectService.updateProjectProgress(this.project.id, clampedProgress);
         break;
       case 'number_of_workers':
-        request$ = this.projectService.updateProjectWorkers(this.project.id, Number(value));
+        const clampedWorkers = this.clampNonNegative(value, true);
+        this.projectForm.get('number_of_workers')?.setValue(clampedWorkers, { emitEvent: false });
+        const activeContractorPrice = this.getActiveContractorPrice();
+        if (this.violatesLaborBudget(clampedWorkers, activeContractorPrice, this.project?.budget)) {
+          this.laborError = this.laborBudgetMessage(clampedWorkers, activeContractorPrice, this.project?.budget);
+          return;
+        }
+        request$ = this.projectService.updateProjectWorkers(this.project.id, clampedWorkers);
         break;
       case 'eta':
-        const etaValue = Number(value ?? 0);
+        const etaValue = this.clampNonNegative(value, true);
+        this.projectForm.get('eta')?.setValue(etaValue, { emitEvent: false });
         request$ = this.projectService.updateProjectEta(this.project.id, etaValue);
         break;
       default:
@@ -260,6 +283,7 @@ export class ProjectDetailsComponent implements OnInit {
           if (updated.eta !== undefined && updated.eta !== null) {
             this.baseEtaWeeks = updated.eta;
           }
+          this.laborError = '';
           this.syncFormWithProject();
         },
         error: (err) => {
@@ -277,6 +301,7 @@ export class ProjectDetailsComponent implements OnInit {
       .subscribe({
         next: (contractors) => {
           this.contractors = contractors ?? [];
+          this.ensureContractorSelection();
         },
         error: (err) => {
           console.error('Failed loading contractors', err);
@@ -297,6 +322,13 @@ export class ProjectDetailsComponent implements OnInit {
       return;
     }
 
+    const selected = this.contractors.find(c => c.id === contractorId);
+    const contractorPrice = this.toNumber(selected?.price);
+    if (this.violatesLaborBudget(this.workforceCount, contractorPrice, this.project?.budget)) {
+      this.laborError = this.laborBudgetMessage(this.workforceCount, contractorPrice, this.project?.budget);
+      return;
+    }
+
     this.contractorSaving = true;
     this.projectService.assignProjectContractor(this.project.id, contractorId)
       .pipe(finalize(() => this.contractorSaving = false))
@@ -304,6 +336,7 @@ export class ProjectDetailsComponent implements OnInit {
         next: (updated) => {
           this.project = updated;
           this.pendingContractorId = null;
+          this.laborError = '';
           this.syncFormWithProject();
         },
         error: (err) => {
@@ -364,6 +397,78 @@ export class ProjectDetailsComponent implements OnInit {
       return 0;
     }
     return Math.min(99, num);
+  }
+
+  private clampNonNegative(value: unknown, asInteger: boolean): number {
+    const num = Number(value ?? 0);
+    if (Number.isNaN(num) || num < 0) {
+      return 0;
+    }
+    return asInteger ? Math.round(num) : num;
+  }
+
+  private ensureContractorSelection(): void {
+    if (!this.project) {
+      return;
+    }
+
+    const currentValue = this.contractorControl.value;
+    const projectContractorId = this.project.contractor;
+    const projectContractorName = this.project.contractorName;
+
+    let resolvedId: string | null = projectContractorId ?? null;
+    if (!resolvedId && projectContractorName) {
+      const nameMatch = this.contractors.find(c => c.fullName === projectContractorName);
+      resolvedId = nameMatch?.id ?? nameMatch?._id ?? null;
+    }
+
+    if (!resolvedId) {
+      return;
+    }
+
+    const currentMatches = this.contractors.some(c =>
+      c.id === currentValue || c._id === currentValue
+    );
+
+    if (!currentMatches) {
+      this.contractorControl.setValue(resolvedId, { emitEvent: false });
+      this.pendingContractorId = null;
+    }
+  }
+
+  private getActiveContractorPrice(): number {
+    const contractorId = this.pendingContractorId ?? this.contractorControl.value ?? this.project?.contractor;
+    const contractorName = this.project?.contractorName;
+    if (!contractorId && !contractorName) {
+      return 0;
+    }
+    const match = this.contractors.find(c =>
+      c.id === contractorId || c._id === contractorId || (contractorName ? c.fullName === contractorName : false)
+    );
+    return this.toNumber(match?.price);
+  }
+
+  private toNumber(value: unknown): number {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : 0;
+  }
+
+  private violatesLaborBudget(workers: number, contractorPrice: number, budget?: number): boolean {
+    if (budget === undefined || budget === null) {
+      return false;
+    }
+    const laborCap = budget * 0.5;
+    const totalLabor = workers + contractorPrice;
+    return totalLabor > laborCap;
+  }
+
+  private laborBudgetMessage(workers: number, contractorPrice: number, budget?: number): string {
+    if (budget === undefined || budget === null) {
+      return '';
+    }
+    const laborCap = Math.max(0, Math.round(budget * 0.5));
+    const totalLabor = workers + contractorPrice;
+    return `Labor cap exceeded: workers (${workers}) + contractor (${contractorPrice}) = ${totalLabor}, cap is ${laborCap} (50% of budget).`;
   }
 
   private getBaselineEta(): number | undefined {

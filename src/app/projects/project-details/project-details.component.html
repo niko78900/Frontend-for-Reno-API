@@ -92,8 +92,8 @@
           </label>
 
           <label class="input-block">
-            <span>ETA (weeks, baseline)</span>
-            <input type="number" formControlName="eta" min="0" step="0.1">
+          <span>ETA (weeks, baseline)</span>
+          <input type="number" formControlName="eta" min="0" step="1">
             <button type="button" (click)="updateField('eta')" [disabled]="fieldSaving.eta">
               {{ fieldSaving.eta ? 'Saving...' : 'Update' }}
             </button>
@@ -122,6 +122,7 @@
               <p>Assign Contractor</p>
               <small *ngIf="contractorsLoading">Loading contractors...</small>
               <small *ngIf="contractorsError" class="error-text">{{ contractorsError }}</small>
+              <small *ngIf="laborError" class="error-text">{{ laborError }}</small>
             </div>
             <button type="button" class="link-btn" (click)="clearContractor()" [disabled]="contractorSaving || !project || !project.contractor">
               Remove
@@ -130,8 +131,8 @@
 
           <select [formControl]="contractorControl" [disabled]="contractorsLoading || contractorSaving">
             <option value="">Unassigned</option>
-            <option *ngFor="let contractor of contractors" [value]="contractor.id">
-              {{ contractor.fullName }} ƒ?" {{ contractor.expertise }}
+            <option *ngFor="let contractor of contractors" [value]="contractor.id || contractor._id">
+              {{ contractor.fullName }} - {{ contractor.expertise }}
             </option>
           </select>
 

@@ -26,6 +26,7 @@ export interface Project {
 
 export interface Contractor {
   id: string;
+  _id?: string;
   fullName: string;
   price: number;
   expertise: ContractorExpertise;
