@@ -2,11 +2,11 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ProjectService } from '../../services/project.service';
-import { Project, Task, Contractor, ContractorExpertise } from '../models/project.model';
+import { Project, Task, TaskStatus, Contractor, ContractorExpertise } from '../models/project.model';
 import { finalize } from 'rxjs/operators';
 import { TaskService } from '../../services/task.service';
 import { ContractorService } from '../../services/contractor.service';
-import { ReactiveFormsModule, FormBuilder, FormGroup, FormControl } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import { calculateEtaDays } from '../utils/eta.util';
 
 @Component({
@@ -24,9 +24,18 @@ export class ProjectDetailsComponent implements OnInit {
   tasks: Task[] = [];
   tasksLoading = false;
   tasksError = '';
-  activeTask?: Task;
+  taskPanelOpen = false;
+  taskSaving = false;
+  taskActionError = '';
+  taskStatusDraft: Record<string, TaskStatus> = {};
+  taskStatusSaving: Record<string, boolean> = {};
+  taskRemoving: Record<string, boolean> = {};
+  projectFinished = false;
+  finishProjectSaving = false;
+  readonly taskStatuses: TaskStatus[] = ['NOT_STARTED', 'WORKING', 'FINISHED', 'CANCELED'];
 
   projectForm: FormGroup;
+  taskForm: FormGroup;
   contractorControl = new FormControl('');
   fieldSaving = {
     name: false,
@@ -60,6 +69,10 @@ export class ProjectDetailsComponent implements OnInit {
       number_of_workers: [0],
       progress: [0],
       eta: [0],
+    });
+    this.taskForm = this.fb.group({
+      name: ['', [Validators.required]],
+      status: ['NOT_STARTED', [Validators.required]]
     });
 
     this.contractorControl.valueChanges.subscribe((value) => {
@@ -148,12 +161,15 @@ export class ProjectDetailsComponent implements OnInit {
       .subscribe({
         next: (tasks) => {
           this.tasks = tasks ?? [];
-          if (!this.activeTask && this.tasks.length) {
-            this.activeTask = this.tasks[0];
-          } else if (this.activeTask) {
-            const refreshed = this.tasks.find(t => t.id === this.activeTask?.id);
-            this.activeTask = refreshed ?? this.activeTask;
+          const nextDraft: Record<string, TaskStatus> = {};
+          this.tasks.forEach(task => {
+            nextDraft[task.id] = this.taskStatusDraft[task.id] ?? task.status;
+          });
+          this.taskStatusDraft = nextDraft;
+          if ((this.project?.progress ?? 0) >= 100 && this.taskCompletionPercent >= 99) {
+            this.projectFinished = true;
           }
+          this.updateEtaDaysDisplayFromState();
         },
         error: (err) => {
           console.error('Failed loading tasks for project', err);
@@ -162,12 +178,159 @@ export class ProjectDetailsComponent implements OnInit {
       });
   }
 
-  selectTask(task: Task): void {
-    this.activeTask = task;
-  }
-
   trackByTaskId(_: number, task: Task): string {
     return task.id;
+  }
+
+  openTaskPanel(): void {
+    this.taskActionError = '';
+    this.taskPanelOpen = true;
+    this.taskForm.reset({ name: '', status: 'NOT_STARTED' });
+  }
+
+  closeTaskPanel(): void {
+    this.taskPanelOpen = false;
+    this.taskForm.reset({ name: '', status: 'NOT_STARTED' });
+  }
+
+  createTask(): void {
+    const projectId = this.project?.id;
+    if (!projectId) {
+      return;
+    }
+
+    this.taskActionError = '';
+    this.taskForm.markAllAsTouched();
+
+    const name = String(this.taskForm.get('name')?.value ?? '').trim();
+    if (!name) {
+      this.taskActionError = 'Task name is required.';
+      return;
+    }
+
+    const status = (this.taskForm.get('status')?.value ?? 'NOT_STARTED') as TaskStatus;
+
+    this.taskSaving = true;
+    this.projectService.addTask(projectId, { name, status })
+      .pipe(finalize(() => this.taskSaving = false))
+      .subscribe({
+        next: (updatedProject) => {
+          if (updatedProject) {
+            this.project = updatedProject;
+          }
+          this.closeTaskPanel();
+          this.loadTasks(projectId);
+        },
+        error: (err) => {
+          console.error('Failed creating task', err);
+          this.taskActionError = 'Unable to create task. Please try again.';
+        }
+      });
+  }
+
+  getTaskStatusDraft(task: Task): TaskStatus {
+    return this.taskStatusDraft[task.id] ?? task.status;
+  }
+
+  setTaskStatusDraft(task: Task, value: string): void {
+    this.taskStatusDraft[task.id] = value as TaskStatus;
+  }
+
+  updateTaskStatus(task: Task): void {
+    if (!task.id) {
+      return;
+    }
+
+    const nextStatus = this.taskStatusDraft[task.id] ?? task.status;
+    if (nextStatus === task.status) {
+      return;
+    }
+
+    this.taskActionError = '';
+    this.taskStatusSaving[task.id] = true;
+
+    const payload: Task = { ...task, status: nextStatus };
+    this.taskService.updateTask(task.id, payload)
+      .pipe(finalize(() => this.taskStatusSaving[task.id] = false))
+      .subscribe({
+        next: (updated) => {
+          const index = this.tasks.findIndex(item => item.id === task.id);
+          if (index >= 0) {
+            this.tasks[index] = updated;
+          }
+          this.taskStatusDraft[task.id] = updated.status;
+          this.updateEtaDaysDisplayFromState();
+        },
+        error: (err) => {
+          console.error('Failed updating task status', err);
+          this.taskActionError = 'Unable to update task status.';
+        }
+      });
+  }
+
+  confirmRemoveTask(task: Task): void {
+    if (!this.project?.id || !task.id) {
+      return;
+    }
+
+    const confirmed = window.confirm(`Are you sure you want to remove "${task.name}"?`);
+    if (!confirmed) {
+      return;
+    }
+
+    this.taskActionError = '';
+    this.taskRemoving[task.id] = true;
+    this.projectService.removeTask(this.project.id, task.id)
+      .pipe(finalize(() => this.taskRemoving[task.id] = false))
+      .subscribe({
+        next: () => {
+          this.tasks = this.tasks.filter(item => item.id !== task.id);
+          delete this.taskStatusDraft[task.id];
+          this.updateEtaDaysDisplayFromState();
+        },
+        error: (err) => {
+          console.error('Failed removing task', err);
+          this.taskActionError = 'Unable to remove task.';
+        }
+      });
+  }
+
+  get taskCompletionPercent(): number {
+    const total = this.tasks.length;
+    if (!total) {
+      return 0;
+    }
+    const finished = this.tasks.filter(task => task.status === 'FINISHED').length;
+    return Math.min(100, Math.max(0, Math.round((finished / total) * 100)));
+  }
+
+  get canFinishProject(): boolean {
+    return this.taskCompletionPercent >= 99 && !this.projectFinished;
+  }
+
+  finishProject(): void {
+    const projectId = this.project?.id;
+    if (!projectId || this.projectFinished || this.taskCompletionPercent < 99) {
+      return;
+    }
+
+    const confirmed = window.confirm('Are you sure you want to finish this project?');
+    if (!confirmed) {
+      return;
+    }
+
+    this.finishProjectSaving = true;
+    this.projectService.updateProjectProgress(projectId, 100)
+      .pipe(finalize(() => this.finishProjectSaving = false))
+      .subscribe({
+        next: (updated) => {
+          this.project = updated;
+          this.projectFinished = true;
+        },
+        error: (err) => {
+          console.error('Failed finishing project', err);
+        }
+      });
   }
 
   get workforceCount(): number {
@@ -399,7 +562,7 @@ export class ProjectDetailsComponent implements OnInit {
     return calculateEtaDays({
       baseEtaWeeks: this.getBaselineEta(),
       workers: this.workforceCount,
-      progressPercent: this.project?.progress ?? 0,
+      progressPercent: this.taskCompletionPercent,
       expertise: this.getProjectContractorExpertise()
     });
   }

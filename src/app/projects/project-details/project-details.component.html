@@ -14,11 +14,14 @@
     <header class="detail-card__header">
       <div>
         <p class="eyebrow">Project</p>
-        <h1>{{ project.name }}</h1>
+        <h1 [class.project-title--done]="projectFinished">{{ project.name }}</h1>
       </div>
-      <span class="badge" *ngIf="etaDaysDisplay !== undefined">
-        ETA {{ etaDaysDisplay }} day{{ etaDaysDisplay === 1 ? '' : 's' }}
-      </span>
+      <div class="detail-card__badges">
+        <span class="badge" *ngIf="etaDaysDisplay !== undefined && !projectFinished">
+          ETA {{ etaDaysDisplay }} day{{ etaDaysDisplay === 1 ? '' : 's' }}
+        </span>
+        <span class="badge badge--muted" *ngIf="projectFinished">Completed</span>
+      </div>
     </header>
 
     <dl class="info-grid">
@@ -43,11 +46,23 @@
     <div class="progress progress--detail">
       <div class="progress__label">
         <span>Progress</span>
-        <span>{{ project.progress ?? 0 }}%</span>
+        <span>{{ taskCompletionPercent }}%</span>
       </div>
       <div class="progress__track">
-        <div class="progress__fill" [style.width.%]="project.progress ?? 0"></div>
+        <div class="progress__fill" [style.width.%]="taskCompletionPercent"></div>
       </div>
+    </div>
+
+    <div class="project-actions">
+      <button type="button"
+              class="finish-btn"
+              (click)="finishProject()"
+              [disabled]="!canFinishProject || finishProjectSaving">
+        {{ projectFinished ? 'Project finished' : (finishProjectSaving ? 'Finishing...' : 'Finish project') }}
+      </button>
+      <span class="project-actions__hint" *ngIf="!projectFinished && taskCompletionPercent < 99">
+        Complete all tasks to finish.
+      </span>
     </div>
 
     <div class="settings-toggle">
@@ -106,18 +121,6 @@
               {{ fieldSaving.number_of_workers ? 'Saving...' : 'Update' }}
             </button>
           </label>
-
-          <label class="input-block">
-            <span>Progress {{ projectForm.get('progress')?.value }}%</span>
-            <input type="range"
-                   formControlName="progress"
-                   min="0"
-                   max="99"
-                   [style.--range-progress]="(projectForm.get('progress')?.value ?? 0) + '%'">
-            <button type="button" (click)="updateField('progress')" [disabled]="fieldSaving.progress">
-              {{ fieldSaving.progress ? 'Saving...' : 'Update' }}
-            </button>
-          </label>
         </div>
 
         <div class="contractor-panel">
@@ -148,10 +151,40 @@
     </div>
 
     <section class="tasks">
-      <header>
-        <h2>Tasks</h2>
-        <span class="badge badge--muted">{{ tasks.length }}</span>
+      <header class="tasks__header">
+        <div>
+          <h2>Tasks</h2>
+          <p class="tasks__hint">Create, update, or remove task items tied to this renovation.</p>
+        </div>
+        <div class="tasks__actions">
+          <span class="badge badge--muted">{{ tasks.length }}</span>
+          <button type="button" class="primary" (click)="openTaskPanel()" [disabled]="taskPanelOpen">
+            Add task
+          </button>
+        </div>
       </header>
+
+      <div *ngIf="taskPanelOpen" class="task-panel" [formGroup]="taskForm">
+        <div class="task-panel__fields">
+          <label class="input-block">
+            <span>Task name</span>
+            <input type="text" formControlName="name" placeholder="Install wiring">
+          </label>
+          <label class="input-block">
+            <span>Status</span>
+            <select formControlName="status">
+              <option *ngFor="let status of taskStatuses" [value]="status">{{ formatStatus(status) }}</option>
+            </select>
+          </label>
+        </div>
+        <div class="task-panel__actions">
+          <button type="button" class="ghost-btn" (click)="closeTaskPanel()">Cancel</button>
+          <button type="button" class="primary" (click)="createTask()" [disabled]="taskSaving || taskForm.invalid">
+            {{ taskSaving ? 'Creating...' : 'Create task' }}
+          </button>
+        </div>
+        <p *ngIf="taskActionError" class="error-text">{{ taskActionError }}</p>
+      </div>
 
       <div *ngIf="tasksLoading" class="status state-loading detail-status">
         <span class="dot"></span>
@@ -166,43 +199,45 @@
         No tasks have been added to this project yet.
       </p>
 
-      <div *ngIf="!tasksLoading && !tasksError && tasks.length" class="tasks__content">
-        <ul class="task-links">
-          <li *ngFor="let task of tasks; trackBy: trackByTaskId">
-            <button type="button"
-                    class="task-link"
-                    [class.task-link--active]="task.id === activeTask?.id"
-                    (click)="selectTask(task)">
-              <span>{{ task.name }}</span>
-              <span class="status-pill" [attr.data-status]="task.status">
-                {{ formatStatus(task.status) }}
-              </span>
-            </button>
-          </li>
-        </ul>
+      <p *ngIf="!tasksLoading && !tasksError && tasks.length && taskActionError" class="error-text">
+        {{ taskActionError }}
+      </p>
 
-        <article *ngIf="activeTask" class="task-detail">
-          <h3>{{ activeTask.name }}</h3>
-          <dl>
+      <ul *ngIf="!tasksLoading && !tasksError && tasks.length" class="task-list">
+        <li class="task-item" *ngFor="let task of tasks; trackBy: trackByTaskId">
+          <div class="task-item__main">
             <div>
-              <dt>Status</dt>
-              <dd>{{ formatStatus(activeTask.status) }}</dd>
+              <h3>{{ task.name }}</h3>
+              <p class="task-item__meta">Task ID {{ task.id }}</p>
             </div>
-            <div>
-              <dt>Task ID</dt>
-              <dd>{{ activeTask.id }}</dd>
-            </div>
-            <div>
-              <dt>Project ID</dt>
-              <dd>{{ activeTask.projectId }}</dd>
-            </div>
-            <div *ngIf="activeTask.description">
-              <dt>Description</dt>
-              <dd>{{ activeTask.description }}</dd>
-            </div>
-          </dl>
-        </article>
-      </div>
+            <span class="status-pill" [attr.data-status]="task.status">
+              {{ formatStatus(task.status) }}
+            </span>
+          </div>
+
+          <div class="task-item__actions">
+            <label class="task-status">
+              <span>Status</span>
+              <select [value]="getTaskStatusDraft(task)"
+                      (change)="setTaskStatusDraft(task, $any($event.target).value)">
+                <option *ngFor="let status of taskStatuses" [value]="status">{{ formatStatus(status) }}</option>
+              </select>
+            </label>
+            <button type="button"
+                    class="secondary"
+                    (click)="updateTaskStatus(task)"
+                    [disabled]="taskStatusSaving[task.id]">
+              {{ taskStatusSaving[task.id] ? 'Saving...' : 'Change status' }}
+            </button>
+            <button type="button"
+                    class="danger"
+                    (click)="confirmRemoveTask(task)"
+                    [disabled]="taskRemoving[task.id]">
+              {{ taskRemoving[task.id] ? 'Removing...' : 'Remove' }}
+            </button>
+          </div>
+        </li>
+      </ul>
     </section>
   </article>
 </section>
