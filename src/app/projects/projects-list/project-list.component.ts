@@ -1,12 +1,11 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { NavigationEnd, Router, RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { ProjectService } from '../../services/project.service';
 import { ContractorService } from '../../services/contractor.service';
 import { HttpClientModule } from '@angular/common/http';
 import { finalize } from 'rxjs/operators';
 import { Project, Contractor, ContractorExpertise } from '../models/project.model';
-import { Subscription, filter } from 'rxjs';
 import { calculateEtaDays } from '../utils/eta.util';
 
 @Component({
@@ -16,13 +15,13 @@ import { calculateEtaDays } from '../utils/eta.util';
   templateUrl: './project-list.component.html',
   styleUrls: ['./project-list.component.css']
 })
-export class ProjectListComponent implements OnInit, OnDestroy {
+export class ProjectListComponent implements OnInit {
 
   projects: Project[] = [];
   loading = true;
   errorMessage = '';
-  private navigationSub?: Subscription;
   contractors: Contractor[] = [];
+  contractorsError = '';
 
   constructor(
     private projectService: ProjectService,
@@ -33,18 +32,6 @@ export class ProjectListComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadProjects();
     this.loadContractors();
-    this.navigationSub = this.router.events
-      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
-      .subscribe((event) => {
-        if (event.urlAfterRedirects.startsWith('/projects')) {
-          this.loadProjects();
-          this.loadContractors();
-        }
-      });
-  }
-
-  ngOnDestroy(): void {
-    this.navigationSub?.unsubscribe();
   }
 
   refreshProjects(): void {
@@ -92,6 +79,7 @@ export class ProjectListComponent implements OnInit, OnDestroy {
   }
 
   private loadContractors(): void {
+    this.contractorsError = '';
     this.contractorService.getAllContractors()
       .subscribe({
         next: (contractors) => {
@@ -99,6 +87,7 @@ export class ProjectListComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           console.error('Failed loading contractors:', err);
+          this.contractorsError = 'Unable to load contractors. Contractor names may be missing.';
         }
       });
   }

@@ -22,6 +22,10 @@
     {{ errorMessage }}
   </div>
 
+  <div *ngIf="!loading && !errorMessage && contractorsError" class="status state-error">
+    {{ contractorsError }}
+  </div>
+
   <div *ngIf="!loading && !errorMessage && projects.length === 0" class="status state-empty">
     No projects found yet. Start by creating your first renovation job.
   </div>

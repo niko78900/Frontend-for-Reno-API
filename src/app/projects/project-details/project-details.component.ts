@@ -559,12 +559,18 @@ export class ProjectDetailsComponent implements OnInit {
   }
 
   private calculateDerivedEtaDays(): number | undefined {
+    const progressPercent = this.getEtaProgressPercent();
     return calculateEtaDays({
       baseEtaWeeks: this.getBaselineEta(),
       workers: this.workforceCount,
-      progressPercent: this.taskCompletionPercent,
+      progressPercent,
       expertise: this.getProjectContractorExpertise()
     });
+  }
+
+  private getEtaProgressPercent(): number {
+    const projectProgress = this.clampProgress(this.project?.progress);
+    return Math.max(projectProgress, this.taskCompletionPercent);
   }
 
   private clampProgress(value: unknown): number {
