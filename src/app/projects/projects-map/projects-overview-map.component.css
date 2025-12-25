@@ -129,6 +129,61 @@
   cursor: not-allowed;
 }
 
+.overview-map__popup-wrapper .leaflet-popup-content-wrapper {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft);
+}
+
+.overview-map__popup-wrapper .leaflet-popup-tip {
+  background: var(--color-surface);
+}
+
+.overview-map__popup {
+  min-width: 220px;
+  display: grid;
+  gap: 6px;
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+
+.overview-map__popup-title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.overview-map__popup-address,
+.overview-map__popup-meta {
+  margin: 0;
+  color: var(--color-text-subtle);
+  font-size: 0.95rem;
+}
+
+.overview-map__popup-meta {
+  color: var(--color-text-muted);
+}
+
+.overview-map__popup-link {
+  margin-top: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-strong);
+  font-weight: 700;
+  cursor: pointer;
+  width: fit-content;
+}
+
+.overview-map__popup-link:hover {
+  filter: brightness(0.98);
+}
+
+.overview-map__popup:active {
+  transform: translateY(1px);
+}
+
 @media (max-width: 720px) {
   .overview-map {
     padding: 12px;

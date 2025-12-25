@@ -2,15 +2,15 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
-  EventEmitter,
   Input,
+  NgZone,
   OnChanges,
   OnDestroy,
-  Output,
   SimpleChanges,
   ViewChild
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import * as L from 'leaflet';
 import { Project } from '../models/project.model';
 import { calculateEtaDays } from '../utils/eta.util';
@@ -25,7 +25,6 @@ import { calculateEtaDays } from '../utils/eta.util';
 export class ProjectsOverviewMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() projects: Project[] = [];
   @Input() loading = false;
-  @Output() navigateToProject = new EventEmitter<Project>();
 
   @ViewChild('mapContainer', { static: true }) mapContainer?: ElementRef<HTMLDivElement>;
 
@@ -45,6 +44,11 @@ export class ProjectsOverviewMapComponent implements AfterViewInit, OnChanges, O
     shadowSize: [41, 41]
   });
 
+  constructor(
+    private router: Router,
+    private zone: NgZone
+  ) {}
+
   ngAfterViewInit(): void {
     this.initMap();
     this.plotMarkers();
@@ -58,12 +62,6 @@ export class ProjectsOverviewMapComponent implements AfterViewInit, OnChanges, O
 
   ngOnDestroy(): void {
     this.map?.remove();
-  }
-
-  onNavigate(): void {
-    if (this.selectedProject) {
-      this.navigateToProject.emit(this.selectedProject);
-    }
   }
 
   getProgressValue(project?: Project): number {
@@ -135,8 +133,14 @@ export class ProjectsOverviewMapComponent implements AfterViewInit, OnChanges, O
         title: project.name
       });
 
+      const popup = this.buildMarkerPopup(project);
+
       marker.on('click', () => {
-        this.selectedProject = project;
+        this.zone.run(() => {
+          this.selectedProject = project;
+          marker.openPopup();
+          this.onNavigate(project);
+        });
       });
 
       marker.bindTooltip(project.name || 'Project', {
@@ -145,6 +149,7 @@ export class ProjectsOverviewMapComponent implements AfterViewInit, OnChanges, O
         opacity: 0.9
       });
 
+      marker.bindPopup(popup);
       marker.addTo(this.markersLayer as L.LayerGroup);
     });
 
@@ -153,5 +158,70 @@ export class ProjectsOverviewMapComponent implements AfterViewInit, OnChanges, O
 
   private hasCoordinates(project?: Project): project is Project & { latitude: number; longitude: number } {
     return Number.isFinite(project?.latitude) && Number.isFinite(project?.longitude);
+  }
+
+  private buildMarkerPopup(project: Project): L.Popup {
+    const popup = L.popup({
+      closeButton: false,
+      autoPan: true,
+      maxWidth: 320,
+      className: 'overview-map__popup-wrapper'
+    });
+
+    const container = L.DomUtil.create('div', 'overview-map__popup');
+    const title = L.DomUtil.create('h4', 'overview-map__popup-title', container);
+    title.textContent = project.name || 'Project';
+
+    const address = L.DomUtil.create('p', 'overview-map__popup-address', container);
+    address.textContent = project.address || 'Address not provided';
+
+    const eta = this.getEtaDays(project);
+    const etaLine = L.DomUtil.create('p', 'overview-map__popup-meta', container);
+    etaLine.textContent = eta !== undefined
+      ? `ETA: ${eta} day${eta === 1 ? '' : 's'}`
+      : 'ETA not set';
+
+    const projectId = this.resolveProjectId(project);
+    if (projectId) {
+      container.dataset['projectId'] = projectId;
+      const link = L.DomUtil.create('button', 'overview-map__popup-link', container);
+      link.type = 'button';
+      link.textContent = 'View project';
+      L.DomEvent.on(link, 'click', (event) => {
+        L.DomEvent.stop(event);
+        this.zone.run(() => this.onNavigate(project));
+      });
+    }
+
+    L.DomEvent.on(container, 'click', (event) => {
+      L.DomEvent.stop(event);
+      this.zone.run(() => this.onNavigate(project));
+    });
+
+    L.DomEvent.disableClickPropagation(container);
+    L.DomEvent.disableScrollPropagation(container);
+
+    popup.setContent(container);
+    return popup;
+  }
+
+  private resolveProjectId(project: Project): string | undefined {
+    const withMongoId = project as Project & { _id?: string; projectId?: string; project_id?: string };
+    const id = project.id ?? withMongoId._id ?? withMongoId.projectId ?? withMongoId.project_id;
+    return typeof id === 'number' ? String(id) : id;
+  }
+
+  onNavigate(project?: Project): void {
+    const target = project ?? this.selectedProject;
+    const projectId = target ? this.resolveProjectId(target) : undefined;
+
+    if (!target || !projectId) {
+      console.warn('Cannot navigate to project because id is missing', target);
+      return;
+    }
+
+    this.zone.run(() => {
+      this.router.navigate(['/projects', projectId], { state: { project: target } });
+    });
   }
 }

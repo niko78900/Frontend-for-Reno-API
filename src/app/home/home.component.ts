@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { RouterModule } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 import { ProjectService } from '../services/project.service';
 import { Project } from '../projects/models/project.model';
@@ -21,8 +21,7 @@ export class HomeComponent implements OnInit {
   missingLocationCount = 0;
 
   constructor(
-    private projectService: ProjectService,
-    private router: Router
+    private projectService: ProjectService
   ) {}
 
   ngOnInit(): void {
@@ -44,15 +43,6 @@ export class HomeComponent implements OnInit {
     this.themeTimeout = window.setTimeout(() => {
       root.classList.remove('theme-transition');
     }, 250);
-  }
-
-  onNavigate(project: Project): void {
-    const fallbackMongoId = (project as Project & { _id?: string })._id;
-    const id = project.id ?? fallbackMongoId;
-    if (!id) {
-      return;
-    }
-    this.router.navigate(['/projects', id], { state: { project } });
   }
 
   private loadProjects(): void {

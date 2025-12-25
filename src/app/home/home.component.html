@@ -32,7 +32,7 @@
       <div>
         <p class="eyebrow">Active locations</p>
         <h2>See your renovations on the map</h2>
-        <p class="subtitle map-subtitle">Pins appear automatically from each project address. Click a pin to preview progress and ETA.</p>
+        <p class="subtitle map-subtitle">Pins appear automatically from each project address. Click a pin to open the project and see progress and ETA.</p>
       </div>
       <div class="home-map__status">
         <span class="chip" *ngIf="loadingProjects">Loading map...</span>
@@ -50,8 +50,7 @@
     <app-projects-overview-map
       *ngIf="!projectError"
       [projects]="projects"
-      [loading]="loadingProjects"
-      (navigateToProject)="onNavigate($event)">
+      [loading]="loadingProjects">
     </app-projects-overview-map>
 
     <p class="map-hint" *ngIf="!projectError && missingLocationCount > 0">
