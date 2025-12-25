@@ -46,8 +46,19 @@ export class ProjectService {
     return this.http.patch<Project>(`${this.apiUrl}/${id}/name`, { name });
   }
 
-  updateProjectAddress(id: string, address: string): Observable<Project> {
-    return this.http.patch<Project>(`${this.apiUrl}/${id}/address`, { address });
+  updateProjectAddress(
+    id: string,
+    address: string,
+    coords?: { latitude?: number; longitude?: number }
+  ): Observable<Project> {
+    const payload: Record<string, unknown> = { address };
+    if (coords?.latitude !== undefined) {
+      payload['latitude'] = coords.latitude;
+    }
+    if (coords?.longitude !== undefined) {
+      payload['longitude'] = coords.longitude;
+    }
+    return this.http.patch<Project>(`${this.apiUrl}/${id}/address`, payload);
   }
 
   updateProjectBudget(id: string, budget: number): Observable<Project> {
@@ -68,10 +79,6 @@ export class ProjectService {
 
   updateProjectWorkers(id: string, workers: number): Observable<Project> {
     return this.http.patch<Project>(`${this.apiUrl}/${id}/workers`, { workers });
-  }
-
-  updateProjectLocation(id: string, latitude: number, longitude: number): Observable<Project> {
-    return this.http.patch<Project>(`${this.apiUrl}/${id}/location`, { latitude, longitude });
   }
 
   assignProjectContractor(id: string, contractorId: string): Observable<Project> {

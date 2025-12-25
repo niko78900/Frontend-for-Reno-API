@@ -497,16 +497,16 @@ export class ProjectDetailsComponent implements OnInit {
       case 'name':
         request$ = this.projectService.updateProjectName(this.project.id, value);
         break;
-      case 'address':
+      case 'address': {
         const trimmedAddress = String(value ?? '').trim();
         const locationPayload = this.getPendingCoordinates();
-        const payload: Partial<Project> = { address: trimmedAddress };
-        if (locationPayload) {
-          payload.latitude = locationPayload.latitude;
-          payload.longitude = locationPayload.longitude;
-        }
-        request$ = this.projectService.updateProjectSlice(this.project.id, payload);
+        request$ = this.projectService.updateProjectAddress(
+          this.project.id,
+          trimmedAddress,
+          locationPayload ?? undefined
+        );
         break;
+      }
       case 'budget':
         const clampedBudget = this.clampNonNegative(value, false);
         this.projectForm.get('budget')?.setValue(clampedBudget, { emitEvent: false });
@@ -585,12 +585,18 @@ export class ProjectDetailsComponent implements OnInit {
     if (!this.project?.id || !this.locationCoordinates) {
       return;
     }
+    const address = String(this.projectForm.get('address')?.value ?? '').trim() || this.project?.address || '';
+    if (!address) {
+      this.locationError = 'Enter an address before saving coordinates.';
+      return;
+    }
+
     this.locationSaving = true;
     this.locationError = '';
-    this.projectService.updateProjectLocation(
+    this.projectService.updateProjectAddress(
       this.project.id,
-      this.locationCoordinates.latitude,
-      this.locationCoordinates.longitude
+      address,
+      this.locationCoordinates ?? undefined
     )
       .pipe(finalize(() => this.locationSaving = false))
       .subscribe({
