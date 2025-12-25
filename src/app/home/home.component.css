@@ -1,8 +1,10 @@
 .home {
   min-height: 100vh;
   display: grid;
-  place-items: center;
-  padding: 48px 20px;
+  gap: 28px;
+  justify-items: center;
+  align-content: start;
+  padding: 48px 20px 64px;
   background: var(--color-home-bg);
 }
 
@@ -112,6 +114,78 @@
   background: var(--color-ghost-bg);
 }
 
+.home-map {
+  width: min(1040px, 100%);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  padding: 20px;
+  box-shadow: var(--shadow-panel);
+}
+
+.home-map__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.home-map__header h2 {
+  margin: 4px 0 6px;
+  color: var(--color-text);
+}
+
+.map-subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.home-map__status {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--color-status-loading-bg);
+  color: var(--color-status-loading-text);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.chip--muted {
+  background: var(--color-surface-muted);
+  color: var(--color-text-subtle);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  margin: 8px 0;
+}
+
+.state-error {
+  background: var(--color-status-error-bg);
+  color: var(--color-status-error-text);
+}
+
+.map-hint {
+  margin: 10px 0 0;
+  color: var(--color-text-subtle);
+  font-size: 0.95rem;
+}
+
 @media (max-width: 640px) {
   .home__card {
     padding: 36px 24px;
@@ -119,5 +193,9 @@
 
   .home__card h1 {
     font-size: 1.8rem;
+  }
+
+  .home-map__header {
+    flex-direction: column;
   }
 }

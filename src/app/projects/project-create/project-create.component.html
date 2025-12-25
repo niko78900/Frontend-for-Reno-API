@@ -52,6 +52,25 @@
       </label>
     </div>
 
+    <section class="location-block">
+      <div class="location-block__header">
+        <div>
+          <p class="eyebrow">Project location</p>
+          <p class="subtitle location-subtitle">Type an address and then drag the marker if needed.</p>
+        </div>
+        <div class="chip" *ngIf="geocodingAddress">Finding address...</div>
+      </div>
+
+      <app-project-location-map
+        [addressLabel]="projectForm.get('address')?.value"
+        [coordinates]="locationCoordinates"
+        (coordinatesChange)="onCoordinatesChange($event)">
+      </app-project-location-map>
+
+      <p *ngIf="locationError" class="error-text">{{ locationError }}</p>
+      <p *ngIf="!locationError" class="location-hint">{{ locationMessage }}</p>
+    </section>
+
     <div class="contractor-panel">
       <div class="contractor-header">
         <div>

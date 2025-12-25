@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { Project } from '../projects/models/project.model';
 
 @Injectable({
@@ -25,6 +26,15 @@ export class ProjectService {
   // CREATE PROJECT
   createProject(project: Partial<Project>): Observable<Project> {
     return this.http.post<Project>(this.apiUrl, project);
+  }
+
+  getProjectsWithCoordinates(): Observable<Project[]> {
+    return this.http.get<Project[]>(`${this.apiUrl}/with-coordinates`).pipe(
+      catchError((err) => {
+        console.warn('Coordinate-aware endpoint missing, falling back to full project list', err);
+        return this.getAllProjects();
+      })
+    );
   }
 
   // UPDATE SLICE (generic)
@@ -58,6 +68,10 @@ export class ProjectService {
 
   updateProjectWorkers(id: string, workers: number): Observable<Project> {
     return this.http.patch<Project>(`${this.apiUrl}/${id}/workers`, { workers });
+  }
+
+  updateProjectLocation(id: string, latitude: number, longitude: number): Observable<Project> {
+    return this.http.patch<Project>(`${this.apiUrl}/${id}/location`, { latitude, longitude });
   }
 
   assignProjectContractor(id: string, contractorId: string): Observable<Project> {

@@ -154,6 +154,43 @@
           </label>
         </div>
 
+        <section class="location-section">
+          <div class="location-section__header">
+            <div>
+              <h3>Project location</h3>
+              <p class="location-section__hint">We place the marker for you from the address. Drag to fine-tune and save.</p>
+            </div>
+            <div class="location-section__chips">
+              <span class="chip" *ngIf="geocodingAddress">Looking up address...</span>
+              <span class="chip chip--muted" *ngIf="!locationCoordinates && !geocodingAddress">Location not set</span>
+            </div>
+          </div>
+
+          <app-project-location-map
+            [addressLabel]="projectForm.get('address')?.value || project.address"
+            [coordinates]="locationCoordinates"
+            (coordinatesChange)="onLocationChanged($event)">
+          </app-project-location-map>
+
+          <div class="location-section__actions">
+            <button type="button"
+                    class="ghost-btn"
+                    (click)="refreshLocationFromAddress()"
+                    [disabled]="geocodingAddress || isFieldLocked('address')">
+              {{ geocodingAddress ? 'Geocoding...' : 'Refresh from address' }}
+            </button>
+            <button type="button"
+                    class="primary"
+                    (click)="saveLocation()"
+                    [disabled]="locationSaving || !locationCoordinates || isLocked()">
+              {{ locationSaving ? 'Saving...' : 'Save location' }}
+            </button>
+          </div>
+
+          <p *ngIf="locationError" class="error-text">{{ locationError }}</p>
+          <p *ngIf="!locationError" class="location-hint">{{ locationMessage }}</p>
+        </section>
+
         <div class="contractor-panel" [class.contractor-panel--disabled]="isLocked()">
           <div class="contractor-header">
             <div>

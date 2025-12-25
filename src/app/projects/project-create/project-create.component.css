@@ -207,6 +207,41 @@
   font-size: 0.8rem;
 }
 
+.location-block {
+  margin-top: 12px;
+}
+
+.location-block__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.location-subtitle {
+  margin: 4px 0 0;
+  color: var(--color-text-muted);
+}
+
+.location-hint {
+  margin: 10px 0 0;
+  color: var(--color-text-subtle);
+  font-size: 0.9rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--color-status-loading-bg);
+  color: var(--color-status-loading-text);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
 @media (max-width: 600px) {
   .create-card {
     padding: 24px;

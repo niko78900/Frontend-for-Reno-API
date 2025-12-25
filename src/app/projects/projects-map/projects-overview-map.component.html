@@ -1,0 +1,49 @@
+<div class="overview-map">
+  <header class="overview-map__header">
+    <div>
+      <p class="eyebrow">Project map</p>
+      <p class="overview-map__subtitle">
+        Click a marker to inspect the project, address, and ETA. Dragging markers happens on the edit screen.
+      </p>
+    </div>
+    <span class="pill" [class.pill--warning]="!projects.length">
+      {{ projects.length || 0 }} on map
+    </span>
+  </header>
+
+  <div #mapContainer class="overview-map__canvas" aria-label="Active renovation projects map"></div>
+
+  <div class="overview-map__empty" *ngIf="!loading && (!projects || !projects.length)">
+    <p>No project locations yet.</p>
+    <small>Projects without coordinates stay off the map until you place a marker.</small>
+  </div>
+
+  <aside class="overview-map__panel" *ngIf="selectedProject">
+    <header class="overview-map__panel-header">
+      <div>
+        <p class="eyebrow">Selected project</p>
+        <h3>{{ selectedProject.name }}</h3>
+        <p class="overview-map__address">{{ selectedProject.address || 'Address not provided' }}</p>
+      </div>
+      <button type="button" class="ghost-btn" (click)="selectedProject = undefined">Close</button>
+    </header>
+
+    <dl class="overview-map__meta">
+      <div>
+        <dt>Progress</dt>
+        <dd>{{ getProgressValue(selectedProject) }}%</dd>
+      </div>
+      <div>
+        <dt>ETA</dt>
+        <dd>
+          <ng-container *ngIf="getEtaDays(selectedProject) !== undefined; else etaUnset">
+            {{ getEtaDays(selectedProject) }} day{{ getEtaDays(selectedProject) === 1 ? '' : 's' }}
+          </ng-container>
+          <ng-template #etaUnset>Not set</ng-template>
+        </dd>
+      </div>
+    </dl>
+
+    <button type="button" class="primary" (click)="onNavigate()">View details</button>
+  </aside>
+</div>

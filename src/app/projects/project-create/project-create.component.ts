@@ -2,15 +2,17 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { finalize } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, finalize } from 'rxjs/operators';
 import { ContractorService } from '../../services/contractor.service';
 import { ProjectService } from '../../services/project.service';
 import { Contractor, Project } from '../models/project.model';
+import { GeocodingService } from '../../services/geocoding.service';
+import { ProjectCoordinates, ProjectLocationMapComponent } from '../location-map/project-location-map.component';
 
 @Component({
   selector: 'app-project-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, ProjectLocationMapComponent],
   templateUrl: './project-create.component.html',
   styleUrls: ['./project-create.component.css']
 })
@@ -24,11 +26,16 @@ export class ProjectCreateComponent implements OnInit {
   laborError = '';
   workersNotice = '';
   autoWorkers = 0;
+  locationCoordinates: ProjectCoordinates | null = null;
+  geocodingAddress = false;
+  locationError = '';
+  locationMessage = 'Add an address to drop a marker on the map.';
 
   constructor(
     private fb: FormBuilder,
     private projectService: ProjectService,
     private contractorService: ContractorService,
+    private geocodingService: GeocodingService,
     private router: Router
   ) {
     this.projectForm = this.fb.group({
@@ -44,6 +51,7 @@ export class ProjectCreateComponent implements OnInit {
   ngOnInit(): void {
     this.loadContractors();
     this.updateAutoWorkers(this.projectForm.get('budget')?.value ?? 0);
+    this.setupAddressWatcher();
 
     this.projectForm.get('budget')?.valueChanges.subscribe((value) => {
       const clampedBudget = this.clampNonNegative(value, false);
@@ -57,6 +65,51 @@ export class ProjectCreateComponent implements OnInit {
     this.projectForm.get('contractor')?.valueChanges.subscribe(() => {
       this.validateLaborCap();
     });
+  }
+
+  private setupAddressWatcher(): void {
+    this.projectForm.get('address')?.valueChanges
+      .pipe(debounceTime(450), distinctUntilChanged())
+      .subscribe((value) => {
+        const nextAddress = String(value ?? '').trim();
+        if (!nextAddress) {
+          this.locationCoordinates = null;
+          this.locationMessage = 'Add an address to drop a marker on the map.';
+          this.locationError = '';
+          return;
+        }
+        this.geocodeAddress(nextAddress);
+      });
+  }
+
+  private geocodeAddress(address: string): void {
+    this.geocodingAddress = true;
+    this.locationError = '';
+    this.geocodingService.geocodeAddress(address)
+      .pipe(finalize(() => this.geocodingAddress = false))
+      .subscribe({
+        next: (result) => {
+          if (!result) {
+            this.locationError = 'We could not locate that address. Drop the marker on the map manually.';
+            return;
+          }
+          this.locationCoordinates = {
+            latitude: result.latitude,
+            longitude: result.longitude
+          };
+          this.locationMessage = 'Marker placed from the address. Drag to refine the exact spot.';
+        },
+        error: (err) => {
+          console.error('Geocoding failed', err);
+          this.locationError = 'We could not look up this address. Place the marker manually.';
+        }
+      });
+  }
+
+  onCoordinatesChange(coords: ProjectCoordinates): void {
+    this.locationCoordinates = coords;
+    this.locationMessage = 'Marker updated. The address text stays as you entered it.';
+    this.locationError = '';
   }
 
   showWorkersNotice(): void {
@@ -94,6 +147,8 @@ export class ProjectCreateComponent implements OnInit {
       progress: this.clampProgress(this.projectForm.get('progress')?.value),
       eta: this.clampNonNegative(this.projectForm.get('eta')?.value, true),
       number_of_workers: this.autoWorkers,
+      latitude: this.locationCoordinates?.latitude,
+      longitude: this.locationCoordinates?.longitude,
       taskIds: []
     };
 

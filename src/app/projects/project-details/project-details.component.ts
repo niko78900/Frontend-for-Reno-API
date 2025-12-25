@@ -3,16 +3,18 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ProjectService } from '../../services/project.service';
 import { Project, Task, TaskStatus, Contractor, ContractorExpertise } from '../models/project.model';
-import { finalize } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, finalize } from 'rxjs/operators';
 import { TaskService } from '../../services/task.service';
 import { ContractorService } from '../../services/contractor.service';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import { calculateEtaDays } from '../utils/eta.util';
+import { GeocodingService } from '../../services/geocoding.service';
+import { ProjectCoordinates, ProjectLocationMapComponent } from '../location-map/project-location-map.component';
 
 @Component({
   selector: 'app-project-details',
   standalone: true,
-  imports: [CommonModule, RouterModule, ReactiveFormsModule],
+  imports: [CommonModule, RouterModule, ReactiveFormsModule, ProjectLocationMapComponent],
   templateUrl: './project-details.component.html',
   styleUrls: ['./project-details.component.css']
 })
@@ -51,6 +53,12 @@ export class ProjectDetailsComponent implements OnInit {
   contractorSaving = false;
   laborError = '';
   etaDaysDisplay?: number;
+  locationCoordinates: ProjectCoordinates | null = null;
+  locationMessage = 'Add an address to place a marker.';
+  locationError = '';
+  geocodingAddress = false;
+  locationSaving = false;
+  locationPendingSave = false;
   private pendingContractorId: string | null = null;
   private baseEtaWeeks: number | null = null;
   settingsOpen = false;
@@ -60,6 +68,7 @@ export class ProjectDetailsComponent implements OnInit {
     private projectService: ProjectService,
     private taskService: TaskService,
     private contractorService: ContractorService,
+    private geocodingService: GeocodingService,
     private fb: FormBuilder
   ) {
     this.projectForm = this.fb.group({
@@ -107,11 +116,23 @@ export class ProjectDetailsComponent implements OnInit {
       this.updateEtaDaysDisplayFromState();
     });
 
-    this.projectForm.get('address')?.valueChanges.subscribe(() => {
-      if (this.isFieldLocked('address')) {
-        this.resetLockedField('address');
-      }
-    });
+    this.projectForm.get('address')?.valueChanges
+      .pipe(debounceTime(450), distinctUntilChanged())
+      .subscribe((value) => {
+        if (this.isFieldLocked('address')) {
+          this.resetLockedField('address');
+          return;
+        }
+        const nextAddress = String(value ?? '').trim();
+        if (!nextAddress) {
+          this.locationCoordinates = null;
+          this.locationPendingSave = false;
+          this.locationMessage = 'Add an address to place a marker.';
+          this.locationError = '';
+          return;
+        }
+        this.geocodeAddress(nextAddress);
+      });
 
     this.projectForm.get('budget')?.valueChanges.subscribe(() => {
       if (this.isFieldLocked('budget')) {
@@ -137,6 +158,7 @@ export class ProjectDetailsComponent implements OnInit {
       this.project = stateProject;
       this.setProjectFinished(this.project);
       this.syncFormWithProject();
+      this.setLocationFromProject(this.project);
       this.loadTasks(id);
       this.loadContractors();
     }
@@ -170,6 +192,7 @@ export class ProjectDetailsComponent implements OnInit {
           this.setProjectFinished(this.project);
           this.captureBaselineEta();
           this.syncFormWithProject();
+          this.setLocationFromProject(this.project);
           this.ensureContractorSelection();
           this.loadTasks(id);
           this.loadContractors();
@@ -456,6 +479,7 @@ export class ProjectDetailsComponent implements OnInit {
     this.contractorControl.setValue(contractorId, { emitEvent: false });
     this.ensureContractorSelection();
     this.updateEtaDaysDisplayFromState();
+    this.setLocationFromProject(this.project);
   }
 
   updateField(field: 'name' | 'address' | 'budget' | 'number_of_workers' | 'progress' | 'eta'): void {
@@ -474,7 +498,14 @@ export class ProjectDetailsComponent implements OnInit {
         request$ = this.projectService.updateProjectName(this.project.id, value);
         break;
       case 'address':
-        request$ = this.projectService.updateProjectAddress(this.project.id, value);
+        const trimmedAddress = String(value ?? '').trim();
+        const locationPayload = this.getPendingCoordinates();
+        const payload: Partial<Project> = { address: trimmedAddress };
+        if (locationPayload) {
+          payload.latitude = locationPayload.latitude;
+          payload.longitude = locationPayload.longitude;
+        }
+        request$ = this.projectService.updateProjectSlice(this.project.id, payload);
         break;
       case 'budget':
         const clampedBudget = this.clampNonNegative(value, false);
@@ -518,16 +549,121 @@ export class ProjectDetailsComponent implements OnInit {
       .subscribe({
         next: (updated) => {
           this.project = updated;
+          if (field === 'address' && this.locationPendingSave) {
+            this.locationPendingSave = false;
+          }
           if (updated.eta !== undefined && updated.eta !== null) {
             this.baseEtaWeeks = updated.eta;
           }
           this.laborError = '';
           this.syncFormWithProject();
+          this.setLocationFromProject(updated);
         },
         error: (err) => {
           console.error(`Failed updating ${field}`, err);
         }
       });
+  }
+
+  onLocationChanged(coords: ProjectCoordinates): void {
+    this.locationCoordinates = coords;
+    this.locationPendingSave = true;
+    this.locationMessage = 'Marker updated. Save to store the coordinates.';
+    this.locationError = '';
+  }
+
+  refreshLocationFromAddress(): void {
+    const address = String(this.projectForm.get('address')?.value ?? '').trim() || this.project?.address || '';
+    if (!address) {
+      this.locationError = 'Enter an address first to place the marker.';
+      return;
+    }
+    this.geocodeAddress(address);
+  }
+
+  saveLocation(): void {
+    if (!this.project?.id || !this.locationCoordinates) {
+      return;
+    }
+    this.locationSaving = true;
+    this.locationError = '';
+    this.projectService.updateProjectLocation(
+      this.project.id,
+      this.locationCoordinates.latitude,
+      this.locationCoordinates.longitude
+    )
+      .pipe(finalize(() => this.locationSaving = false))
+      .subscribe({
+        next: (updated) => {
+          this.project = updated;
+          this.locationPendingSave = false;
+          this.setLocationFromProject(updated);
+        },
+        error: (err) => {
+          console.error('Failed saving location', err);
+          this.locationError = 'Unable to save location. Please try again.';
+        }
+      });
+  }
+
+  private geocodeAddress(address: string): void {
+    this.geocodingAddress = true;
+    this.locationError = '';
+    this.geocodingService.geocodeAddress(address)
+      .pipe(finalize(() => this.geocodingAddress = false))
+      .subscribe({
+        next: (result) => {
+          if (!result) {
+            this.locationError = 'We could not locate that address. Drag the marker into place.';
+            return;
+          }
+          this.locationCoordinates = {
+            latitude: result.latitude,
+            longitude: result.longitude
+          };
+          this.locationPendingSave = true;
+          this.locationMessage = 'Marker placed from the address. Save to confirm coordinates.';
+        },
+        error: (err) => {
+          console.error('Geocoding failed', err);
+          this.locationError = 'We could not look up this address. Place the marker manually.';
+        }
+      });
+  }
+
+  private setLocationFromProject(project?: Project): void {
+    const coords = this.extractProjectCoordinates(project);
+    if (coords && !this.locationPendingSave) {
+      this.locationCoordinates = coords;
+      this.locationMessage = 'Drag the marker to adjust the project location.';
+      this.locationError = '';
+      this.locationPendingSave = false;
+    } else if (!coords && !this.locationPendingSave) {
+      this.locationCoordinates = null;
+      this.locationMessage = 'Add an address to place a marker for this project.';
+      this.locationPendingSave = false;
+      if (project?.address && !this.geocodingAddress) {
+        this.geocodeAddress(project.address);
+      }
+    }
+  }
+
+  private extractProjectCoordinates(project?: Project): ProjectCoordinates | null {
+    if (this.hasProjectCoordinates(project)) {
+      return { latitude: project!.latitude as number, longitude: project!.longitude as number };
+    }
+    return null;
+  }
+
+  private getPendingCoordinates(): ProjectCoordinates | null {
+    if (this.locationCoordinates && this.hasProjectCoordinates(this.locationCoordinates)) {
+      return this.locationCoordinates;
+    }
+    return this.extractProjectCoordinates(this.project);
+  }
+
+  private hasProjectCoordinates(project?: { latitude?: number; longitude?: number } | null): project is { latitude: number; longitude: number } {
+    return Number.isFinite(project?.latitude) && Number.isFinite(project?.longitude);
   }
 
   private loadContractors(): void {

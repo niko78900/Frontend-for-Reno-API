@@ -1,0 +1,21 @@
+<div class="location-card">
+  <header class="location-card__header">
+    <div>
+      <p class="eyebrow">Location</p>
+      <p class="location-card__hint">{{ hint }}</p>
+      <p class="location-card__address" *ngIf="addressLabel">{{ addressLabel }}</p>
+    </div>
+    <span class="pill" [class.pill--warning]="!coordinates">
+      {{ coordinates ? 'Pinned' : 'Location not set' }}
+    </span>
+  </header>
+
+  <div #mapContainer class="location-map" aria-label="Project location map"></div>
+
+  <p class="location-card__status" *ngIf="!coordinates">
+    Enter an address and we will place a marker automatically. If that fails, click anywhere on the map to drop a pin.
+  </p>
+  <p class="location-card__status" *ngIf="coordinates">
+    Drag the marker to adjust the exact spot. The address text stays as you entered it.
+  </p>
+</div>
