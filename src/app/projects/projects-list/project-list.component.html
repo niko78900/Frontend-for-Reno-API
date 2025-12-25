@@ -31,10 +31,16 @@
   </div>
 
   <ul *ngIf="!loading && !errorMessage && projects.length > 0" class="project-grid">
-    <li class="project-card" *ngFor="let project of projects" (click)="goToDetails(project)">
+    <li class="project-card"
+        *ngFor="let project of projects"
+        (click)="goToDetails(project)"
+        [class.project-card--finished]="isFinished(project)">
       <div class="project-card__header">
-        <h3>{{ project.name }}</h3>
-        <span class="project-card__eta" *ngIf="getEtaDays(project) !== undefined">
+        <h3 [class.project-card__title--finished]="isFinished(project)">{{ project.name }}</h3>
+        <span class="project-card__eta project-card__eta--done" *ngIf="isFinished(project)">
+          Completed
+        </span>
+        <span class="project-card__eta" *ngIf="!isFinished(project) && getEtaDays(project) !== undefined">
           ETA {{ getEtaDays(project) }} day{{ getEtaDays(project) === 1 ? '' : 's' }}
         </span>
       </div>
@@ -57,10 +63,10 @@
       <div class="progress">
         <div class="progress__label">
           <span>Progress</span>
-          <span>{{ project.progress ?? 0 }}%</span>
+          <span>{{ getProgressValue(project) }}%</span>
         </div>
         <div class="progress__track">
-          <div class="progress__fill" [style.width.%]="project.progress ?? 0"></div>
+          <div class="progress__fill" [style.width.%]="getProgressValue(project)"></div>
         </div>
       </div>
     </li>

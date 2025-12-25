@@ -196,6 +196,25 @@
   transition: width 0.3s ease;
 }
 
+.project-card--finished {
+  opacity: 0.9;
+  border-color: var(--color-border);
+}
+
+.project-card__title--finished {
+  text-decoration: line-through;
+  color: var(--color-text-subtle);
+}
+
+.project-card__eta--done {
+  background: var(--color-status-finished-bg);
+  color: var(--color-status-finished-text);
+}
+
+.project-card--finished .progress__fill {
+  background: var(--color-progress-track);
+}
+
 @media (min-width: 768px) {
   .project-grid {
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));

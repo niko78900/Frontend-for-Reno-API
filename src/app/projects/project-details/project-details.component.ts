@@ -76,18 +76,47 @@ export class ProjectDetailsComponent implements OnInit {
     });
 
     this.contractorControl.valueChanges.subscribe((value) => {
+      if (this.isLocked()) {
+        this.ensureContractorSelection();
+        return;
+      }
       this.pendingContractorId = this.getContractorId(value) ?? null;
       this.updateEtaDaysDisplayFromState();
     });
 
-    this.projectForm.get('progress')?.valueChanges.subscribe(() => {
+    this.projectForm.get('progress')?.valueChanges.subscribe((value) => {
+      if (this.isFieldLocked('progress')) {
+        const clamped = this.clampProgress(this.project?.progress);
+        this.projectForm.get('progress')?.setValue(clamped, { emitEvent: false });
+        return;
+      }
       this.updateEtaDaysDisplayFromState();
     });
     this.projectForm.get('number_of_workers')?.valueChanges.subscribe(() => {
+      if (this.isFieldLocked('number_of_workers')) {
+        this.resetLockedField('number_of_workers');
+        return;
+      }
       this.updateEtaDaysDisplayFromState();
     });
     this.projectForm.get('eta')?.valueChanges.subscribe(() => {
+      if (this.isFieldLocked('eta')) {
+        this.resetLockedField('eta');
+        return;
+      }
       this.updateEtaDaysDisplayFromState();
+    });
+
+    this.projectForm.get('address')?.valueChanges.subscribe(() => {
+      if (this.isFieldLocked('address')) {
+        this.resetLockedField('address');
+      }
+    });
+
+    this.projectForm.get('budget')?.valueChanges.subscribe(() => {
+      if (this.isFieldLocked('budget')) {
+        this.resetLockedField('budget');
+      }
     });
   }
 
@@ -106,6 +135,7 @@ export class ProjectDetailsComponent implements OnInit {
 
     if (matchesStateId) {
       this.project = stateProject;
+      this.setProjectFinished(this.project);
       this.syncFormWithProject();
       this.loadTasks(id);
       this.loadContractors();
@@ -137,6 +167,7 @@ export class ProjectDetailsComponent implements OnInit {
       .subscribe({
         next: (data) => {
           this.project = data;
+          this.setProjectFinished(this.project);
           this.captureBaselineEta();
           this.syncFormWithProject();
           this.ensureContractorSelection();
@@ -166,9 +197,7 @@ export class ProjectDetailsComponent implements OnInit {
             nextDraft[task.id] = this.taskStatusDraft[task.id] ?? task.status;
           });
           this.taskStatusDraft = nextDraft;
-          if ((this.project?.progress ?? 0) >= 100 && this.taskCompletionPercent >= 99) {
-            this.projectFinished = true;
-          }
+          this.setProjectFinished(this.project);
           this.updateEtaDaysDisplayFromState();
         },
         error: (err) => {
@@ -183,6 +212,9 @@ export class ProjectDetailsComponent implements OnInit {
   }
 
   openTaskPanel(): void {
+    if (this.isLocked()) {
+      return;
+    }
     this.taskActionError = '';
     this.taskPanelOpen = true;
     this.taskForm.reset({ name: '', status: 'NOT_STARTED' });
@@ -194,6 +226,9 @@ export class ProjectDetailsComponent implements OnInit {
   }
 
   createTask(): void {
+    if (this.isLocked()) {
+      return;
+    }
     const projectId = this.project?.id;
     if (!projectId) {
       return;
@@ -217,6 +252,7 @@ export class ProjectDetailsComponent implements OnInit {
         next: (updatedProject) => {
           if (updatedProject) {
             this.project = updatedProject;
+            this.setProjectFinished(this.project);
           }
           this.closeTaskPanel();
           this.loadTasks(projectId);
@@ -233,10 +269,16 @@ export class ProjectDetailsComponent implements OnInit {
   }
 
   setTaskStatusDraft(task: Task, value: string): void {
+    if (this.isLocked()) {
+      return;
+    }
     this.taskStatusDraft[task.id] = value as TaskStatus;
   }
 
   updateTaskStatus(task: Task): void {
+    if (this.isLocked()) {
+      return;
+    }
     if (!task.id) {
       return;
     }
@@ -269,6 +311,9 @@ export class ProjectDetailsComponent implements OnInit {
   }
 
   confirmRemoveTask(task: Task): void {
+    if (this.isLocked()) {
+      return;
+    }
     if (!this.project?.id || !task.id) {
       return;
     }
@@ -296,6 +341,9 @@ export class ProjectDetailsComponent implements OnInit {
   }
 
   get taskCompletionPercent(): number {
+    if (this.projectFinished) {
+      return 100;
+    }
     const total = this.tasks.length;
     if (!total) {
       return 0;
@@ -320,12 +368,20 @@ export class ProjectDetailsComponent implements OnInit {
     }
 
     this.finishProjectSaving = true;
-    this.projectService.updateProjectProgress(projectId, 100)
+    this.projectService.updateProjectFinished(projectId, true)
       .pipe(finalize(() => this.finishProjectSaving = false))
       .subscribe({
         next: (updated) => {
-          this.project = updated;
-          this.projectFinished = true;
+          const merged = { ...this.project, ...updated };
+          if (merged.finished === undefined) {
+            merged.finished = true;
+          }
+          if (merged.finished && (merged.progress ?? 0) < 100) {
+            merged.progress = 100;
+          }
+          this.project = merged;
+          this.setProjectFinished(this.project);
+          this.syncFormWithProject();
         },
         error: (err) => {
           console.error('Failed finishing project', err);
@@ -377,7 +433,9 @@ export class ProjectDetailsComponent implements OnInit {
       return;
     }
 
+    this.setProjectFinished(this.project);
     const clampedProgress = this.clampProgress(this.project.progress);
+    const progressValue = this.projectFinished ? Math.max(clampedProgress, 100) : clampedProgress;
     this.captureBaselineEta();
     const baselineEta = this.getBaselineEta();
 
@@ -386,12 +444,13 @@ export class ProjectDetailsComponent implements OnInit {
       address: this.project.address ?? '',
       budget: this.project.budget ?? 0,
       number_of_workers: this.workforceCount,
-      progress: clampedProgress,
+      progress: progressValue,
       eta: baselineEta ?? 0,
     });
 
     // Keep local project progress aligned with the capped slider to avoid jumping back to 100.
-    this.project.progress = clampedProgress;
+    this.project.progress = progressValue;
+    this.setProjectFinished(this.project);
 
     const contractorId = this.getProjectContractorId() ?? '';
     this.contractorControl.setValue(contractorId, { emitEvent: false });
@@ -400,6 +459,9 @@ export class ProjectDetailsComponent implements OnInit {
   }
 
   updateField(field: 'name' | 'address' | 'budget' | 'number_of_workers' | 'progress' | 'eta'): void {
+    if (this.isFieldLocked(field)) {
+      return;
+    }
     if (!this.project?.id) {
       return;
     }
@@ -488,6 +550,9 @@ export class ProjectDetailsComponent implements OnInit {
   }
 
   applyContractor(): void {
+    if (this.isLocked()) {
+      return;
+    }
     if (!this.project?.id) {
       return;
     }
@@ -523,6 +588,9 @@ export class ProjectDetailsComponent implements OnInit {
   }
 
   clearContractor(): void {
+    if (this.isLocked()) {
+      return;
+    }
     if (!this.project?.id) {
       return;
     }
@@ -559,6 +627,9 @@ export class ProjectDetailsComponent implements OnInit {
   }
 
   private calculateDerivedEtaDays(): number | undefined {
+    if (this.projectFinished) {
+      return undefined;
+    }
     const progressPercent = this.getEtaProgressPercent();
     return calculateEtaDays({
       baseEtaWeeks: this.getBaselineEta(),
@@ -578,7 +649,7 @@ export class ProjectDetailsComponent implements OnInit {
     if (Number.isNaN(num) || num < 0) {
       return 0;
     }
-    return Math.min(99, num);
+    return Math.min(100, num);
   }
 
   private clampNonNegative(value: unknown, asInteger: boolean): number {
@@ -690,6 +761,56 @@ export class ProjectDetailsComponent implements OnInit {
   private toNumber(value: unknown): number {
     const num = Number(value);
     return Number.isFinite(num) ? num : 0;
+  }
+
+  isLocked(): boolean {
+    return this.projectFinished;
+  }
+
+  isFieldLocked(field: 'name' | 'address' | 'budget' | 'number_of_workers' | 'progress' | 'eta'): boolean {
+    if (!this.projectFinished) {
+      return false;
+    }
+    return field !== 'name';
+  }
+
+  private resetLockedField(field: 'address' | 'budget' | 'number_of_workers' | 'progress' | 'eta'): void {
+    if (!this.project) {
+      return;
+    }
+    const control = this.projectForm.get(field);
+    if (!control) {
+      return;
+    }
+
+    let value: unknown;
+    switch (field) {
+      case 'address':
+        value = this.project.address ?? '';
+        break;
+      case 'budget':
+        value = this.project.budget ?? 0;
+        break;
+      case 'number_of_workers':
+        value = this.workforceCount;
+        break;
+      case 'progress':
+        value = this.clampProgress(this.project.progress);
+        break;
+      case 'eta':
+        value = this.getBaselineEta() ?? 0;
+        break;
+    }
+
+    control.setValue(value, { emitEvent: false });
+  }
+
+  private setProjectFinished(project?: Project): void {
+    const finishedFlag = project?.finished === true || (project?.progress ?? 0) >= 100;
+    this.projectFinished = finishedFlag;
+    if (finishedFlag && project) {
+      project.progress = Math.max(project.progress ?? 0, 100);
+    }
   }
 
   private violatesLaborBudget(workers: number, contractorPrice: number, budget?: number): boolean {

@@ -116,12 +116,30 @@ export class ProjectListComponent implements OnInit {
   }
 
   getEtaDays(project: Project): number | undefined {
+    if (this.isFinished(project)) {
+      return undefined;
+    }
     return calculateEtaDays({
       baseEtaWeeks: project.eta,
       workers: project.number_of_workers ?? project.numberOfWorkers ?? 0,
-      progressPercent: project.progress ?? 0,
+      progressPercent: this.getProgressValue(project),
       expertise: this.getContractorExpertise(project)
     });
+  }
+
+  getProgressValue(project: Project): number {
+    if (this.isFinished(project)) {
+      return 100;
+    }
+    const progress = Number(project.progress ?? 0);
+    if (Number.isNaN(progress) || progress < 0) {
+      return 0;
+    }
+    return Math.min(100, progress);
+  }
+
+  isFinished(project: Project): boolean {
+    return project.finished === true;
   }
 
   private getContractorExpertise(project: Project): ContractorExpertise | undefined {

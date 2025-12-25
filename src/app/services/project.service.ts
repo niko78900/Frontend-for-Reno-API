@@ -52,6 +52,10 @@ export class ProjectService {
     return this.http.patch<Project>(`${this.apiUrl}/${id}/eta`, { eta });
   }
 
+  updateProjectFinished(id: string, finished: boolean): Observable<Project> {
+    return this.http.patch<Project>(`${this.apiUrl}/${id}/finished`, { finished });
+  }
+
   updateProjectWorkers(id: string, workers: number): Observable<Project> {
     return this.http.patch<Project>(`${this.apiUrl}/${id}/workers`, { workers });
   }

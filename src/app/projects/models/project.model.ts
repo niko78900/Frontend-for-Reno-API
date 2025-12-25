@@ -14,9 +14,13 @@ export interface Project {
   id: string;
   name: string;
   budget: number;
+  finished?: boolean;
   contractor?: string;
+  contractorId?: string;
   contractorName?: string;
   address?: string;
+  latitude?: number;
+  longitude?: number;
   progress?: number;
   eta?: number;
   number_of_workers?: number;

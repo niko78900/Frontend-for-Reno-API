@@ -502,11 +502,41 @@
   cursor: not-allowed;
 }
 
+.input-block--disabled input,
+.input-block--disabled select,
+.input-block--disabled button {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+  background: var(--color-input-bg);
+  color: var(--color-text-subtle);
+}
+
+.input-block--disabled {
+  opacity: 0.7;
+}
+
+.input-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.locked-control {
+  opacity: 0.5 !important;
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+}
+
 .contractor-panel {
   margin-top: 24px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.contractor-panel--disabled {
+  opacity: 0.6;
 }
 
 .contractor-header {
@@ -552,6 +582,7 @@
 .link-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+  pointer-events: none;
 }
 
 .error-text {

@@ -82,48 +82,79 @@
         </header>
 
         <div class="settings-grid">
-          <label class="input-block">
+          <label class="input-block" [class.input-block--disabled]="isFieldLocked('name')">
             <span>Name</span>
-            <input type="text" formControlName="name">
-            <button type="button" (click)="updateField('name')" [disabled]="fieldSaving.name">
+            <input type="text" formControlName="name" [disabled]="isFieldLocked('name')">
+            <button type="button"
+                    (click)="updateField('name')"
+                    [disabled]="fieldSaving.name || isFieldLocked('name')"
+                    [class.locked-control]="isFieldLocked('name')">
               {{ fieldSaving.name ? 'Saving...' : 'Update' }}
             </button>
           </label>
 
-          <label class="input-block">
+          <label class="input-block" [class.input-block--disabled]="isFieldLocked('address')">
             <span>Address</span>
-            <input type="text" formControlName="address">
-            <button type="button" (click)="updateField('address')" [disabled]="fieldSaving.address">
+            <input type="text"
+                   formControlName="address"
+                   [disabled]="isFieldLocked('address')"
+                   [class.locked-control]="isFieldLocked('address')">
+            <button type="button"
+                    (click)="updateField('address')"
+                    [disabled]="fieldSaving.address || isFieldLocked('address')"
+                    [class.locked-control]="isFieldLocked('address')">
               {{ fieldSaving.address ? 'Saving...' : 'Update' }}
             </button>
           </label>
 
-          <label class="input-block">
+          <label class="input-block" [class.input-block--disabled]="isFieldLocked('budget')">
             <span>Budget</span>
-            <input type="number" formControlName="budget" min="0">
-            <button type="button" (click)="updateField('budget')" [disabled]="fieldSaving.budget">
+            <input type="number"
+                   formControlName="budget"
+                   min="0"
+                   [disabled]="isFieldLocked('budget')"
+                   [class.locked-control]="isFieldLocked('budget')">
+            <button type="button"
+                    (click)="updateField('budget')"
+                    [disabled]="fieldSaving.budget || isFieldLocked('budget')"
+                    [class.locked-control]="isFieldLocked('budget')">
               {{ fieldSaving.budget ? 'Saving...' : 'Update' }}
             </button>
           </label>
 
-          <label class="input-block">
+          <label class="input-block" [class.input-block--disabled]="isFieldLocked('eta')">
           <span>ETA (weeks, baseline)</span>
-          <input type="number" formControlName="eta" min="0" step="1">
-            <button type="button" (click)="updateField('eta')" [disabled]="fieldSaving.eta">
+          <input type="number"
+                 formControlName="eta"
+                 min="0"
+                 step="1"
+                 [disabled]="isFieldLocked('eta')"
+                 [class.locked-control]="isFieldLocked('eta')">
+            <button type="button"
+                    (click)="updateField('eta')"
+                    [disabled]="fieldSaving.eta || isFieldLocked('eta')"
+                    [class.locked-control]="isFieldLocked('eta')">
               {{ fieldSaving.eta ? 'Saving...' : 'Update' }}
             </button>
           </label>
 
-          <label class="input-block">
+          <label class="input-block" [class.input-block--disabled]="isFieldLocked('number_of_workers')">
             <span>Workers</span>
-            <input type="number" formControlName="number_of_workers" min="0">
-            <button type="button" (click)="updateField('number_of_workers')" [disabled]="fieldSaving.number_of_workers">
+            <input type="number"
+                   formControlName="number_of_workers"
+                   min="0"
+                   [disabled]="isFieldLocked('number_of_workers')"
+                   [class.locked-control]="isFieldLocked('number_of_workers')">
+            <button type="button"
+                    (click)="updateField('number_of_workers')"
+                    [disabled]="fieldSaving.number_of_workers || isFieldLocked('number_of_workers')"
+                    [class.locked-control]="isFieldLocked('number_of_workers')">
               {{ fieldSaving.number_of_workers ? 'Saving...' : 'Update' }}
             </button>
           </label>
         </div>
 
-        <div class="contractor-panel">
+        <div class="contractor-panel" [class.contractor-panel--disabled]="isLocked()">
           <div class="contractor-header">
             <div>
               <p>Assign Contractor</p>
@@ -131,19 +162,19 @@
               <small *ngIf="contractorsError" class="error-text">{{ contractorsError }}</small>
               <small *ngIf="laborError" class="error-text">{{ laborError }}</small>
             </div>
-            <button type="button" class="link-btn" (click)="clearContractor()" [disabled]="contractorSaving || !project || !project.contractor">
+            <button type="button" class="link-btn" (click)="clearContractor()" [disabled]="contractorSaving || !project || !project.contractor || isLocked()">
               Remove
             </button>
           </div>
 
-          <select [formControl]="contractorControl" [disabled]="contractorsLoading || contractorSaving">
+          <select [formControl]="contractorControl" [disabled]="contractorsLoading || contractorSaving || isLocked()" [class.input-disabled]="isLocked()">
             <option value="">Unassigned</option>
             <option *ngFor="let contractor of contractors" [value]="contractor.id || contractor._id">
               {{ contractor.fullName }} - {{ contractor.expertise }}
             </option>
           </select>
 
-          <button type="button" class="primary" (click)="applyContractor()" [disabled]="contractorSaving">
+          <button type="button" class="primary" (click)="applyContractor()" [disabled]="contractorSaving || isLocked()">
             {{ contractorSaving ? 'Saving...' : 'Save Contractor' }}
           </button>
         </div>
@@ -156,30 +187,44 @@
           <h2>Tasks</h2>
           <p class="tasks__hint">Create, update, or remove task items tied to this renovation.</p>
         </div>
-        <div class="tasks__actions">
-          <span class="badge badge--muted">{{ tasks.length }}</span>
-          <button type="button" class="primary" (click)="openTaskPanel()" [disabled]="taskPanelOpen">
-            Add task
-          </button>
-        </div>
-      </header>
+      <div class="tasks__actions">
+        <span class="badge badge--muted">{{ tasks.length }}</span>
+        <button type="button"
+                class="primary"
+                (click)="openTaskPanel()"
+                [disabled]="taskPanelOpen || isLocked()"
+                [class.locked-control]="isLocked()">
+          Add task
+        </button>
+      </div>
+    </header>
 
       <div *ngIf="taskPanelOpen" class="task-panel" [formGroup]="taskForm">
         <div class="task-panel__fields">
           <label class="input-block">
             <span>Task name</span>
-            <input type="text" formControlName="name" placeholder="Install wiring">
+            <input type="text" formControlName="name" placeholder="Install wiring" [disabled]="isLocked()">
           </label>
           <label class="input-block">
             <span>Status</span>
-            <select formControlName="status">
+            <select formControlName="status" [disabled]="isLocked()">
               <option *ngFor="let status of taskStatuses" [value]="status">{{ formatStatus(status) }}</option>
             </select>
           </label>
         </div>
         <div class="task-panel__actions">
-          <button type="button" class="ghost-btn" (click)="closeTaskPanel()">Cancel</button>
-          <button type="button" class="primary" (click)="createTask()" [disabled]="taskSaving || taskForm.invalid">
+          <button type="button"
+                  class="ghost-btn"
+                  (click)="closeTaskPanel()"
+                  [class.locked-control]="isLocked()"
+                  [disabled]="isLocked()">
+            Cancel
+          </button>
+          <button type="button"
+                  class="primary"
+                  (click)="createTask()"
+                  [disabled]="taskSaving || taskForm.invalid || isLocked()"
+                  [class.locked-control]="isLocked()">
             {{ taskSaving ? 'Creating...' : 'Create task' }}
           </button>
         </div>
@@ -219,20 +264,23 @@
             <label class="task-status">
               <span>Status</span>
               <select [value]="getTaskStatusDraft(task)"
-                      (change)="setTaskStatusDraft(task, $any($event.target).value)">
+                      (change)="setTaskStatusDraft(task, $any($event.target).value)"
+                      [disabled]="isLocked()">
                 <option *ngFor="let status of taskStatuses" [value]="status">{{ formatStatus(status) }}</option>
               </select>
             </label>
             <button type="button"
                     class="secondary"
                     (click)="updateTaskStatus(task)"
-                    [disabled]="taskStatusSaving[task.id]">
+                    [disabled]="taskStatusSaving[task.id] || isLocked()"
+                    [class.locked-control]="isLocked()">
               {{ taskStatusSaving[task.id] ? 'Saving...' : 'Change status' }}
             </button>
             <button type="button"
                     class="danger"
                     (click)="confirmRemoveTask(task)"
-                    [disabled]="taskRemoving[task.id]">
+                    [disabled]="taskRemoving[task.id] || isLocked()"
+                    [class.locked-control]="isLocked()">
               {{ taskRemoving[task.id] ? 'Removing...' : 'Remove' }}
             </button>
           </div>
