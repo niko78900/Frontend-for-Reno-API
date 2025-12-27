@@ -132,6 +132,38 @@ a {
   color: inherit;
 }
 
+:where(button, a, [role="button"], input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+:where(button):hover:not(:disabled),
+:where(a, [role="button"]):hover {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.overview-map__canvas:hover,
+.overview-map__canvas:focus,
+.overview-map__canvas:focus-visible,
+.leaflet-container:focus,
+.leaflet-container:focus-visible {
+  border-color: var(--color-accent);
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.leaflet-marker-icon:hover,
+.leaflet-marker-icon:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--color-accent);
+  filter: drop-shadow(0 0 6px var(--color-accent-glow));
+}
+
 html.theme-transition,
 html.theme-transition * {
   transition: background-color 250ms ease, color 250ms ease, border-color 250ms ease, box-shadow 250ms ease;

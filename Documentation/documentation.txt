@@ -144,6 +144,14 @@ Map and Geocoding Behavior
 - Manual marker moves set a pending state that only persists when the user saves.
 - Project details respects existing coordinates unless the address changes.
 
+Keyboard Navigation
+-------------------
+- Arrow keys move focus between interactive elements (use either Left/Right or Up/Down).
+- Enter activates the focused control (buttons and links).
+- Backspace navigates back a page when focus is not inside an input, textarea, or select.
+- Select fields use a two-mode behavior: press Enter/Space to edit the select, use Arrow keys to change options, then press Enter, Escape, or Tab to exit edit mode and continue navigation.
+- The map can be focused for visual feedback, but marker placement/dragging still requires a mouse.
+
 State Management
 ----------------
 - No global store; state is managed in components with RxJS and Angular Reactive Forms.

@@ -33,6 +33,9 @@
   <ul *ngIf="!loading && !errorMessage && projects.length > 0" class="project-grid">
     <li class="project-card"
         *ngFor="let project of projects"
+        role="button"
+        tabindex="0"
+        [attr.aria-label]="'Open project ' + (project.name || 'details')"
         (click)="goToDetails(project)"
         [class.project-card--finished]="isFinished(project)">
       <div class="project-card__header">

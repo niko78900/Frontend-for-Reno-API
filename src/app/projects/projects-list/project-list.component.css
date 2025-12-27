@@ -126,6 +126,11 @@
   box-shadow: var(--shadow-hover);
 }
 
+.project-card:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
 .project-card__header {
   display: flex;
   justify-content: space-between;
