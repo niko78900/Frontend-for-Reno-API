@@ -1,68 +1,33 @@
 # HomerenoFrontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.0.0.
+Homereno is a frontend for planning and tracking home renovation projects with budgets, contractors, tasks, and map-based locations.
 
-## Development server
+## Project Goal
 
-To start a local development server, run:
+Deliver a clean, responsive dashboard that lets users create renovation projects, assign contractors, manage tasks, track progress/ETA, and visualize project locations on a map.
+
+## Project Structure
+
+- `src/app/app.*`: root shell and router outlet
+- `src/app/app.routes.ts`: client-side routes
+- `src/app/home/`: landing page and projects overview map
+- `src/app/projects/`: project list, details, create flow, and map components
+- `src/app/projects/location-map/`: interactive Leaflet map with draggable marker
+- `src/app/services/`: API services for projects, tasks, contractors, and geocoding
+- `src/app/projects/models/`: TypeScript domain models
+- `src/app/projects/utils/`: shared utilities (ETA calculations)
+- `src/styles.css`: global theme tokens and base styles
+- `public/`: static assets
+- `Documentation/`: requirements and planning notes
+
+## Running the app
 
 ```bash
 ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Then open `http://localhost:4200/`.
 
-## Code scaffolding
+## Backend
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
-
-## Backend API quick reference
-
-- API stack: Spring Boot + MongoDB, base URL `http://localhost:8080`.
-- Projects (`/api/projects`): list, detail, create, delete, partial updates (name, address, budget, contractor, progress, eta), contractor removal, and task management (`POST /{projectId}/tasks`, `DELETE /{projectId}/tasks/{taskId}`). Responses include both `contractor` (ID) and `contractorName` so the UI can render names without extra lookups.
-- Contractors (`/api/contractors`): list/filter/search, detail, expertise enum lookup (`GET /api/contractors/expertise`), create/update/delete.
-- Tasks (`/api/tasks`): list, detail, by-project lookup, status enum lookup (`GET /api/tasks/statuses`), create/update/delete.
-- IDs are Mongo ObjectIds; enums are uppercase (`JUNIOR/APPRENTICE/SENIOR`, `NOT_STARTED/WORKING/FINISHED/CANCELED`); all write endpoints expect JSON bodies.
-- See `Documentation/API_Testing_Guide.txt` for ready-to-copy Postman payloads that exercise every endpoint.
+The backend is provided separately in the Spring Boot repo: https://github.com/niko78900/RenoAPI
