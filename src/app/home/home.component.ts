@@ -45,6 +45,10 @@ export class HomeComponent implements OnInit {
     }, 250);
   }
 
+  refreshProjects(): void {
+    this.loadProjects();
+  }
+
   private loadProjects(): void {
     this.loadingProjects = true;
     this.projectError = '';

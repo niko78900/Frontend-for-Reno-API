@@ -4,6 +4,15 @@
   padding: 40px 20px 64px;
 }
 
+.detail-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
 .back-link {
   display: inline-flex;
   gap: 8px;
@@ -11,7 +20,7 @@
   text-decoration: none;
   color: var(--color-text-subtle);
   font-size: 0.95rem;
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 
 .back-link:hover {
@@ -77,6 +86,16 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.home-link {
+  text-decoration: none;
+  font-weight: 600;
+  color: var(--color-text);
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--color-ghost-border);
+  background: var(--color-ghost-bg);
 }
 
 .eyebrow {
@@ -673,6 +692,13 @@
   align-items: flex-start;
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.settings-modal__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .settings-modal .link-btn {

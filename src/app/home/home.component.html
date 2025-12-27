@@ -40,6 +40,12 @@
         <span class="chip" *ngIf="missingLocationCount > 0">
           {{ missingLocationCount }} missing location{{ missingLocationCount === 1 ? '' : 's' }}
         </span>
+        <button type="button"
+                class="map-refresh-btn"
+                (click)="refreshProjects()"
+                [disabled]="loadingProjects">
+          {{ loadingProjects ? 'Refreshing...' : 'Refresh map' }}
+        </button>
       </div>
     </div>
 

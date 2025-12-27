@@ -1,5 +1,8 @@
 <section class="page detail">
-  <a routerLink="/projects" class="back-link">&lt; Back to projects</a>
+  <div class="detail-topbar">
+    <a routerLink="/projects" class="back-link">&lt; Back to projects</a>
+    <a routerLink="/" class="home-link">Home</a>
+  </div>
 
   <div *ngIf="loading" class="status state-loading detail-status">
     <span class="dot"></span>
@@ -78,7 +81,10 @@
             <h2>Project Settings</h2>
             <p class="meta-hint">Adjusting progress, workforce, or contractor expertise recalculates the ETA automatically.</p>
           </div>
-          <button type="button" class="link-btn" (click)="closeSettings()">Close</button>
+          <div class="settings-modal__actions">
+            <a routerLink="/" class="link-btn">Home</a>
+            <button type="button" class="link-btn" (click)="closeSettings()">Close</button>
+          </div>
         </header>
 
         <div class="settings-grid">

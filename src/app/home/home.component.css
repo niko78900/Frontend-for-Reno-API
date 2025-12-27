@@ -148,6 +148,22 @@
   align-items: center;
 }
 
+.map-refresh-btn {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--color-ghost-border);
+  background: var(--color-ghost-bg);
+  color: var(--color-ghost-text);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.map-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .chip {
   display: inline-flex;
   align-items: center;
