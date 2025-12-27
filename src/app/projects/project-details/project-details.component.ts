@@ -123,22 +123,29 @@ export class ProjectDetailsComponent implements OnInit {
       this.updateEtaDaysDisplayFromState();
     });
 
-    this.projectForm.get('address')?.valueChanges
-      .pipe(distinctUntilChanged())
-      .subscribe((value) => {
-        if (this.isFieldLocked('address')) {
-          this.resetLockedField('address');
-          return;
-        }
-        const nextAddress = String(value ?? '').trim();
-        if (!nextAddress) {
-          this.locationCoordinates = null;
-          this.locationPendingSave = false;
-          this.locationMessage = 'Add an address to place a marker.';
-          this.locationError = '';
-        }
-        this.requestGeocode(nextAddress, 450);
-      });
+      this.projectForm.get('address')?.valueChanges
+        .pipe(distinctUntilChanged())
+        .subscribe((value) => {
+          if (this.isFieldLocked('address')) {
+            this.resetLockedField('address');
+            return;
+          }
+          const nextAddress = String(value ?? '').trim();
+          const savedAddress = String(this.project?.address ?? '').trim();
+          const addressChanged = nextAddress !== savedAddress;
+          if (!nextAddress) {
+            this.locationCoordinates = null;
+            this.locationPendingSave = false;
+            this.locationMessage = 'Add an address to place a marker.';
+            this.locationError = '';
+          } else if (addressChanged) {
+            this.locationCoordinates = null;
+            this.locationPendingSave = false;
+            this.locationMessage = 'Looking up address...';
+            this.locationError = '';
+          }
+          this.requestGeocode(nextAddress, 450);
+        });
 
     this.projectForm.get('budget')?.valueChanges.subscribe(() => {
       if (this.isFieldLocked('budget')) {
@@ -500,6 +507,8 @@ export class ProjectDetailsComponent implements OnInit {
 
     const value = this.projectForm.get(field)?.value;
     let request$;
+    let shouldClearCoordinates = false;
+    let includeCoordinates = false;
 
     switch (field) {
       case 'name':
@@ -507,11 +516,15 @@ export class ProjectDetailsComponent implements OnInit {
         break;
       case 'address': {
         const trimmedAddress = String(value ?? '').trim();
+        const savedAddress = String(this.project?.address ?? '').trim();
+        const addressChanged = trimmedAddress !== savedAddress;
         const locationPayload = this.getPendingCoordinates();
+        includeCoordinates = Boolean(locationPayload) && trimmedAddress.length > 0;
+        shouldClearCoordinates = trimmedAddress.length === 0 || (addressChanged && !includeCoordinates);
         request$ = this.projectService.updateProjectAddress(
           this.project.id,
           trimmedAddress,
-          locationPayload ?? undefined
+          includeCoordinates ? locationPayload ?? undefined : undefined
         );
         break;
       }
@@ -556,10 +569,15 @@ export class ProjectDetailsComponent implements OnInit {
       .pipe(finalize(() => this.fieldSaving[field] = false))
       .subscribe({
         next: (updated) => {
-          this.project = updated;
-          if (field === 'address' && this.locationPendingSave) {
+          if (field === 'address' && shouldClearCoordinates) {
+            updated = { ...updated, latitude: undefined, longitude: undefined };
+            this.locationCoordinates = null;
+            this.locationPendingSave = false;
+          } else if (field === 'address' && includeCoordinates) {
             this.locationPendingSave = false;
           }
+
+          this.project = updated;
           if (updated.eta !== undefined && updated.eta !== null) {
             this.baseEtaWeeks = updated.eta;
           }
@@ -574,6 +592,14 @@ export class ProjectDetailsComponent implements OnInit {
   }
 
   onLocationChanged(coords: ProjectCoordinates): void {
+    const address = String(this.projectForm.get('address')?.value ?? '').trim();
+    if (!address) {
+      this.locationCoordinates = null;
+      this.locationPendingSave = false;
+      this.locationMessage = 'Add an address to place a marker.';
+      this.locationError = '';
+      return;
+    }
     this.locationCoordinates = coords;
     this.locationPendingSave = true;
     this.locationMessage = 'Marker updated. Save to store the coordinates.';
@@ -666,6 +692,15 @@ export class ProjectDetailsComponent implements OnInit {
   }
 
   private setLocationFromProject(project?: Project): void {
+    const address = String(project?.address ?? '').trim();
+    if (!address) {
+      this.locationCoordinates = null;
+      this.locationMessage = 'Add an address to place a marker for this project.';
+      this.locationError = '';
+      this.locationPendingSave = false;
+      return;
+    }
+
     const coords = this.extractProjectCoordinates(project);
     if (coords && !this.locationPendingSave) {
       this.locationCoordinates = coords;
@@ -676,8 +711,8 @@ export class ProjectDetailsComponent implements OnInit {
       this.locationCoordinates = null;
       this.locationMessage = 'Add an address to place a marker for this project.';
       this.locationPendingSave = false;
-      if (project?.address && !this.geocodingAddress) {
-        this.requestGeocode(project.address);
+      if (address && !this.geocodingAddress) {
+        this.requestGeocode(address);
       }
     }
   }
@@ -690,10 +725,10 @@ export class ProjectDetailsComponent implements OnInit {
   }
 
   private getPendingCoordinates(): ProjectCoordinates | null {
-    if (this.locationCoordinates && this.hasProjectCoordinates(this.locationCoordinates)) {
+    if (this.locationPendingSave && this.locationCoordinates && this.hasProjectCoordinates(this.locationCoordinates)) {
       return this.locationCoordinates;
     }
-    return this.extractProjectCoordinates(this.project);
+    return null;
   }
 
   private hasProjectCoordinates(project?: { latitude?: number; longitude?: number } | null): project is { latitude: number; longitude: number } {

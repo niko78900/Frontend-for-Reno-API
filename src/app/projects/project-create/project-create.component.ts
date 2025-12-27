@@ -81,6 +81,9 @@ export class ProjectCreateComponent implements OnInit {
             this.geocodingAddress = false;
             return of({ address, result: null, skipped: true });
           }
+          this.locationCoordinates = null;
+          this.locationMessage = 'Finding address...';
+          this.locationError = '';
           return of(address).pipe(
             debounceTime(450),
             switchMap((debouncedAddress) => this.geocodeAddress(debouncedAddress).pipe(
@@ -115,6 +118,13 @@ export class ProjectCreateComponent implements OnInit {
   }
 
   onCoordinatesChange(coords: ProjectCoordinates): void {
+    const address = String(this.projectForm.get('address')?.value ?? '').trim();
+    if (!address) {
+      this.locationCoordinates = null;
+      this.locationMessage = 'Add an address to drop a marker on the map.';
+      this.locationError = '';
+      return;
+    }
     this.locationCoordinates = coords;
     this.locationMessage = 'Marker updated. The address text stays as you entered it.';
     this.locationError = '';
