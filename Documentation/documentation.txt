@@ -1,0 +1,173 @@
+HomeReno Frontend Documentation
+===============================
+
+Overview
+--------
+HomeReno is an Angular frontend for planning and tracking home renovation projects. The app covers project creation, contractor assignment, task tracking, progress and ETA estimation, and map-based location management.
+
+Goals
+-----
+- Provide an easy way to create and manage renovation projects.
+- Track tasks and project completion.
+- Visualize project locations on a map.
+- Keep the UI responsive and clear on desktop and mobile.
+
+Tech Stack
+----------
+- Angular with standalone components and Angular Router.
+- TypeScript and RxJS.
+- Leaflet for maps.
+- OpenStreetMap Nominatim for geocoding.
+
+Running the App
+---------------
+- ng serve
+- Frontend default: http://localhost:4200
+
+Backend
+-------
+- Backend repo: https://github.com/niko78900/RenoAPI
+- Base URL: http://localhost:8080
+- CORS is expected for http://localhost:4200
+
+Project Structure (frontend)
+----------------------------
+- src/app/app.routes.ts: route table
+- src/app/home/: landing page and map overview
+- src/app/projects/projects-list/: list view
+- src/app/projects/project-details/: details, settings, and tasks
+- src/app/projects/project-create/: create flow
+- src/app/projects/location-map/: Leaflet map component
+- src/app/projects/models/: Project, Task, and Contractor interfaces
+- src/app/projects/utils/: ETA calculation utilities
+- src/app/services/: API and geocoding services
+- src/styles.css: theme and global styling
+- public/: static assets
+- Documentation/: requirements and notes
+
+Routing
+-------
+- / -> HomeComponent (map overview)
+- /projects -> ProjectListComponent
+- /projects/new -> ProjectCreateComponent
+- /projects/:id -> ProjectDetailsComponent
+
+Data Models
+-----------
+Project:
+- id (string)
+- name, budget, progress, finished
+- contractorId, contractorName, contractor (legacy field for request and response compatibility)
+- address, latitude, longitude
+- eta, number_of_workers, numberOfWorkers
+- taskIds
+
+Task:
+- id, projectId, name, status
+
+Contractor:
+- id, fullName, price, expertise (JUNIOR | APPRENTICE | SENIOR)
+
+ID Normalization
+----------------
+- Backend may return Mongo-style _id. Services map _id -> id so components use id only.
+- Project normalization also maps contractorId from responses and mirrors it to contractor for legacy usage.
+- Components should never reference _id.
+
+API Integration (used by frontend)
+----------------------------------
+Projects
+- GET /api/projects
+- GET /api/projects/{id}
+- GET /api/projects/with-coordinates (optional; falls back to GET /api/projects)
+- POST /api/projects
+- PATCH /api/projects/{id}/name
+- PATCH /api/projects/{id}/address
+- PATCH /api/projects/{id}/budget
+- PATCH /api/projects/{id}/progress
+- PATCH /api/projects/{id}/workers
+- PATCH /api/projects/{id}/eta
+- PATCH /api/projects/{id}/finished
+- PATCH /api/projects/{id}/contractor
+- PATCH /api/projects/{id}/contractor/remove
+- POST /api/projects/{projectId}/tasks
+- DELETE /api/projects/{projectId}/tasks/{taskId}
+
+Tasks
+- GET /api/tasks
+- GET /api/tasks/{id}
+- GET /api/tasks/project/{projectId}
+- POST /api/tasks
+- PUT /api/tasks/{id}
+- DELETE /api/tasks/{id}
+
+Contractors
+- GET /api/contractors
+- GET /api/contractors/{id}
+- GET /api/contractors/expertise
+- POST /api/contractors
+- DELETE /api/contractors/{id}
+
+Request vs response naming
+--------------------------
+- Project requests use contractor and number_of_workers (snake case).
+- Project responses use contractorId, contractorName, and numberOfWorkers (camel case).
+- Task uses projectId for both request and response.
+
+Core UI Flows
+-------------
+Home (map overview)
+- Loads the project list, filters for items with coordinates, and renders markers.
+- Marker interactions are handled inside the map component.
+
+Project list
+- Shows project cards with progress, ETA, contractor, and status.
+- ETA is computed from baseline eta plus workers, progress, and contractor expertise.
+
+Project create
+- Reactive form with budget, eta, contractor selection, and address.
+- Auto-calculates workers from budget.
+- Geocoding runs as the address changes; manual marker placement is supported.
+- On save, sends contractor and number_of_workers as required by the backend.
+
+Project details
+- Settings modal allows updates to name, address, budget, workers, progress, eta, and contractor.
+- Task panel supports create, update status, and delete.
+- Finish project uses the explicit /finished endpoint.
+- Address changes trigger geocoding; opening settings does not move the marker unless the user edits the address.
+
+Map and Geocoding Behavior
+--------------------------
+- Geocoding uses Nominatim (OpenStreetMap) with a debounced request stream.
+- Only the latest address input updates coordinates.
+- Clearing the address clears coordinates and pending state.
+- Manual marker moves set a pending state that only persists when the user saves.
+- Project details respects existing coordinates unless the address changes.
+
+State Management
+----------------
+- No global store; state is managed in components with RxJS and Angular Reactive Forms.
+- Services return normalized data models.
+- Local flags track loading, saving, and validation errors.
+
+Error Handling and UX
+---------------------
+- Each major async path has loading and error states.
+- Failed geocoding shows a friendly message and keeps the marker manual.
+- API errors are logged and surfaced in the UI where appropriate.
+
+Requirements Alignment (frontend guidelines)
+--------------------------------------------
+- Component-based architecture: home, list, details, create, map, and shared utilities.
+- Client-side routing with multiple views.
+- Reactive forms and local state management appropriate to app complexity.
+- Responsive layout with dedicated styles for cards, modals, and maps.
+- Interaction beyond CRUD: live ETA calculation, map marker drag, geocoding, task-driven progress.
+- Asynchronous data handling via HttpClient and RxJS.
+
+Known Limitations and Assumptions
+---------------------------------
+- Backend is required for full functionality; it is provided in the RenoAPI repo.
+- No authentication is implemented in the frontend.
+- Project and task consistency follow backend behavior (project.taskIds is authoritative).
+- Geocoding depends on third-party availability (Nominatim).
