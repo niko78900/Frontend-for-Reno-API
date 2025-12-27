@@ -206,8 +206,7 @@ export class ProjectsOverviewMapComponent implements AfterViewInit, OnChanges, O
   }
 
   private resolveProjectId(project: Project): string | undefined {
-    const withMongoId = project as Project & { _id?: string; projectId?: string; project_id?: string };
-    const id = project.id ?? withMongoId._id ?? withMongoId.projectId ?? withMongoId.project_id;
+    const id = project.id;
     return typeof id === 'number' ? String(id) : id;
   }
 

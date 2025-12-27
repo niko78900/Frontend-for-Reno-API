@@ -1,8 +1,14 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 import { Project } from '../projects/models/project.model';
+
+type ProjectApi = Omit<Project, 'id' | 'contractor'> & {
+  id?: string | number;
+  _id?: string | number;
+  contractor?: unknown;
+};
 
 @Injectable({
   providedIn: 'root'
@@ -15,21 +21,28 @@ export class ProjectService {
 
   // GET ALL
   getAllProjects(): Observable<Project[]> {
-    return this.http.get<Project[]>(this.apiUrl);
+    return this.http.get<unknown>(this.apiUrl).pipe(
+      map((response) => this.normalizeProjects(response))
+    );
   }
 
   // GET BY ID
   getProjectById(id: string): Observable<Project> {
-    return this.http.get<Project>(`${this.apiUrl}/${id}`);
+    return this.http.get<unknown>(`${this.apiUrl}/${id}`).pipe(
+      map((response) => this.normalizeProject(response))
+    );
   }
 
   // CREATE PROJECT
   createProject(project: Partial<Project>): Observable<Project> {
-    return this.http.post<Project>(this.apiUrl, project);
+    return this.http.post<unknown>(this.apiUrl, project).pipe(
+      map((response) => this.normalizeProject(response))
+    );
   }
 
   getProjectsWithCoordinates(): Observable<Project[]> {
-    return this.http.get<Project[]>(`${this.apiUrl}/with-coordinates`).pipe(
+    return this.http.get<unknown>(`${this.apiUrl}/with-coordinates`).pipe(
+      map((response) => this.normalizeProjects(response)),
       catchError((err) => {
         console.warn('Coordinate-aware endpoint missing, falling back to full project list', err);
         return this.getAllProjects();
@@ -39,11 +52,15 @@ export class ProjectService {
 
   // UPDATE SLICE (generic)
   updateProjectSlice(id: string, payload: Partial<Project>): Observable<Project> {
-    return this.http.patch<Project>(`${this.apiUrl}/${id}`, payload);
+    return this.http.patch<unknown>(`${this.apiUrl}/${id}`, payload).pipe(
+      map((response) => this.normalizeProject(response))
+    );
   }
 
   updateProjectName(id: string, name: string): Observable<Project> {
-    return this.http.patch<Project>(`${this.apiUrl}/${id}/name`, { name });
+    return this.http.patch<unknown>(`${this.apiUrl}/${id}/name`, { name }).pipe(
+      map((response) => this.normalizeProject(response))
+    );
   }
 
   updateProjectAddress(
@@ -58,35 +75,51 @@ export class ProjectService {
     if (coords?.longitude !== undefined) {
       payload['longitude'] = coords.longitude;
     }
-    return this.http.patch<Project>(`${this.apiUrl}/${id}/address`, payload);
+    return this.http.patch<unknown>(`${this.apiUrl}/${id}/address`, payload).pipe(
+      map((response) => this.normalizeProject(response))
+    );
   }
 
   updateProjectBudget(id: string, budget: number): Observable<Project> {
-    return this.http.patch<Project>(`${this.apiUrl}/${id}/budget`, { budget });
+    return this.http.patch<unknown>(`${this.apiUrl}/${id}/budget`, { budget }).pipe(
+      map((response) => this.normalizeProject(response))
+    );
   }
 
   updateProjectProgress(id: string, progress: number): Observable<Project> {
-    return this.http.patch<Project>(`${this.apiUrl}/${id}/progress`, { progress });
+    return this.http.patch<unknown>(`${this.apiUrl}/${id}/progress`, { progress }).pipe(
+      map((response) => this.normalizeProject(response))
+    );
   }
 
   updateProjectEta(id: string, eta: number): Observable<Project> {
-    return this.http.patch<Project>(`${this.apiUrl}/${id}/eta`, { eta });
+    return this.http.patch<unknown>(`${this.apiUrl}/${id}/eta`, { eta }).pipe(
+      map((response) => this.normalizeProject(response))
+    );
   }
 
   updateProjectFinished(id: string, finished: boolean): Observable<Project> {
-    return this.http.patch<Project>(`${this.apiUrl}/${id}/finished`, { finished });
+    return this.http.patch<unknown>(`${this.apiUrl}/${id}/finished`, { finished }).pipe(
+      map((response) => this.normalizeProject(response))
+    );
   }
 
   updateProjectWorkers(id: string, workers: number): Observable<Project> {
-    return this.http.patch<Project>(`${this.apiUrl}/${id}/workers`, { workers });
+    return this.http.patch<unknown>(`${this.apiUrl}/${id}/workers`, { workers }).pipe(
+      map((response) => this.normalizeProject(response))
+    );
   }
 
   assignProjectContractor(id: string, contractorId: string): Observable<Project> {
-    return this.http.patch<Project>(`${this.apiUrl}/${id}/contractor`, { contractorId });
+    return this.http.patch<unknown>(`${this.apiUrl}/${id}/contractor`, { contractorId }).pipe(
+      map((response) => this.normalizeProject(response))
+    );
   }
 
   removeProjectContractor(id: string): Observable<Project> {
-    return this.http.patch<Project>(`${this.apiUrl}/${id}/contractor/remove`, {});
+    return this.http.patch<unknown>(`${this.apiUrl}/${id}/contractor/remove`, {}).pipe(
+      map((response) => this.normalizeProject(response))
+    );
   }
 
   // DELETE PROJECT
@@ -96,11 +129,68 @@ export class ProjectService {
 
   // ADD TASK INTO PROJECT
   addTask(projectId: string, task: any): Observable<Project> {
-    return this.http.post<Project>(`${this.apiUrl}/${projectId}/tasks`, task);
+    return this.http.post<unknown>(`${this.apiUrl}/${projectId}/tasks`, task).pipe(
+      map((response) => this.normalizeProject(response))
+    );
   }
 
   // REMOVE TASK FROM PROJECT
   removeTask(projectId: string, taskId: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${projectId}/tasks/${taskId}`);
+  }
+
+  private normalizeId(value: unknown): string | undefined {
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (typeof value === 'number') {
+      return String(value);
+    }
+    return undefined;
+  }
+
+  private normalizeProject(raw: unknown): Project {
+    if (!raw || typeof raw !== 'object') {
+      return { id: '' } as Project;
+    }
+
+    const candidate = raw as ProjectApi;
+    const resolvedId = this.normalizeId(candidate.id ?? candidate._id);
+    const { _id, id, contractor, ...rest } = candidate;
+    const normalized: Project = { ...rest, id: resolvedId ?? '' };
+
+    if (typeof contractor === 'string' || typeof contractor === 'number') {
+      normalized.contractor = String(contractor);
+    } else if (contractor && typeof contractor === 'object') {
+      const contractorRecord = contractor as { id?: unknown; _id?: unknown; fullName?: unknown };
+      const contractorId = this.normalizeId(contractorRecord.id ?? contractorRecord._id);
+      if (contractorId) {
+        normalized.contractor = contractorId;
+      }
+      const contractorName = contractorRecord.fullName;
+      if (typeof contractorName === 'string' && !normalized.contractorName) {
+        normalized.contractorName = contractorName;
+      }
+    }
+
+    return normalized;
+  }
+
+  private normalizeProjects(raw: unknown): Project[] {
+    if (Array.isArray(raw)) {
+      return raw.map((item) => this.normalizeProject(item));
+    }
+
+    if (raw && typeof raw === 'object') {
+      const candidate = raw as { projects?: unknown; data?: unknown };
+      if (Array.isArray(candidate.projects)) {
+        return candidate.projects.map((item) => this.normalizeProject(item));
+      }
+      if (Array.isArray(candidate.data)) {
+        return candidate.data.map((item) => this.normalizeProject(item));
+      }
+    }
+
+    return [];
   }
 }

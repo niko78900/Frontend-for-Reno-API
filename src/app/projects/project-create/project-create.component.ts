@@ -157,8 +157,7 @@ export class ProjectCreateComponent implements OnInit {
       .pipe(finalize(() => this.saving = false))
       .subscribe({
         next: (created) => {
-          const fallbackMongoId = (created as Project & { _id?: string })._id;
-          const id = created.id ?? fallbackMongoId;
+          const id = created.id;
           if (id) {
             this.router.navigate(['/projects', id], { state: { project: created } });
           } else {
@@ -229,7 +228,7 @@ export class ProjectCreateComponent implements OnInit {
     if (!contractorId) {
       return 0;
     }
-    const match = this.contractors.find(c => c.id === contractorId || c._id === contractorId);
+    const match = this.contractors.find(c => c.id === contractorId);
     return this.toNumber(match?.price);
   }
 

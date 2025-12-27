@@ -84,7 +84,7 @@
       <select formControlName="contractor" [disabled]="contractorsLoading">
         <option value="">Unassigned</option>
         <option *ngFor="let contractor of contractors"
-                [value]="contractor.id || contractor._id"
+                [value]="contractor.id"
                 [disabled]="isContractorOverBudget(contractor)">
           {{ contractor.fullName }} - {{ contractor.expertise }}
         </option>

@@ -206,7 +206,7 @@
 
           <select [formControl]="contractorControl" [disabled]="contractorsLoading || contractorSaving || isLocked()" [class.input-disabled]="isLocked()">
             <option value="">Unassigned</option>
-            <option *ngFor="let contractor of contractors" [value]="contractor.id || contractor._id">
+            <option *ngFor="let contractor of contractors" [value]="contractor.id">
               {{ contractor.fullName }} - {{ contractor.expertise }}
             </option>
           </select>

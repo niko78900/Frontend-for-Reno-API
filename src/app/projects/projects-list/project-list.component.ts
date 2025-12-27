@@ -40,8 +40,7 @@ export class ProjectListComponent implements OnInit {
   }
 
   goToDetails(project: Project) {
-    const fallbackMongoId = (project as Project & { _id?: string })._id;
-    const id = project?.id ?? fallbackMongoId;
+    const id = project?.id;
 
     if (!id) {
       console.warn('Project is missing an id field, cannot navigate to details:', project);
@@ -149,7 +148,7 @@ export class ProjectListComponent implements OnInit {
       return undefined;
     }
     if (contractorId) {
-      const matchById = this.contractors.find(c => c.id === contractorId || c._id === contractorId);
+      const matchById = this.contractors.find(c => c.id === contractorId);
       if (matchById) {
         return matchById.expertise;
       }
@@ -167,8 +166,8 @@ export class ProjectListComponent implements OnInit {
     if (!value || typeof value !== 'object') {
       return undefined;
     }
-    const candidate = value as { id?: string; _id?: string };
-    return candidate.id ?? candidate._id;
+    const candidate = value as { id?: string };
+    return candidate.id;
   }
 
   private getContractorName(value: unknown): string | undefined {

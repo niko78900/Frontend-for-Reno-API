@@ -151,8 +151,8 @@ export class ProjectDetailsComponent implements OnInit {
       return;
     }
 
-    const stateProject = window.history.state?.project as (Project & { _id?: string }) | undefined;
-    const matchesStateId = stateProject && ((stateProject.id ?? stateProject._id) === id);
+    const stateProject = window.history.state?.project as Project | undefined;
+    const matchesStateId = stateProject && stateProject.id === id;
 
     if (matchesStateId) {
       this.project = stateProject;
@@ -428,7 +428,7 @@ export class ProjectDetailsComponent implements OnInit {
     const contractorName = this.getProjectContractorName();
 
     if (contractorId) {
-      return this.contractors.find(c => c.id === contractorId || c._id === contractorId);
+      return this.contractors.find(c => c.id === contractorId);
     }
 
     if (!contractorName) {
@@ -706,7 +706,7 @@ export class ProjectDetailsComponent implements OnInit {
       return;
     }
 
-    const selected = this.contractors.find(c => c.id === contractorId || c._id === contractorId);
+    const selected = this.contractors.find(c => c.id === contractorId);
     const contractorPrice = this.toNumber(selected?.price);
     if (this.violatesLaborBudget(this.workforceCount, contractorPrice, this.project?.budget)) {
       this.laborError = this.laborBudgetMessage(this.workforceCount, contractorPrice, this.project?.budget);
@@ -814,7 +814,7 @@ export class ProjectDetailsComponent implements OnInit {
     let resolvedId: string | null = projectContractorId ?? null;
     if (!resolvedId && projectContractorName) {
       const nameMatch = this.contractors.find(c => c.fullName === projectContractorName);
-      resolvedId = nameMatch?.id ?? nameMatch?._id ?? null;
+      resolvedId = nameMatch?.id ?? null;
     }
 
     if (!resolvedId) {
@@ -836,7 +836,7 @@ export class ProjectDetailsComponent implements OnInit {
       return undefined;
     }
     if (contractorId) {
-      const matchById = this.contractors.find(c => c.id === contractorId || c._id === contractorId);
+      const matchById = this.contractors.find(c => c.id === contractorId);
       if (matchById) {
         return matchById.expertise;
       }
@@ -853,7 +853,7 @@ export class ProjectDetailsComponent implements OnInit {
       ?? this.getProjectContractorId();
     const contractorName = this.getProjectContractorName();
     if (contractorId) {
-      const match = this.contractors.find(c => c.id === contractorId || c._id === contractorId);
+      const match = this.contractors.find(c => c.id === contractorId);
       return this.toNumber(match?.price);
     }
 
@@ -881,8 +881,8 @@ export class ProjectDetailsComponent implements OnInit {
     if (!value || typeof value !== 'object') {
       return undefined;
     }
-    const candidate = value as { id?: string; _id?: string };
-    return candidate.id ?? candidate._id;
+    const candidate = value as { id?: string };
+    return candidate.id;
   }
 
   private getContractorName(value: unknown): string | undefined {
