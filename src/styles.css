@@ -138,6 +138,14 @@ a {
   box-shadow: 0 0 0 3px var(--color-accent-soft);
 }
 
+:where(.primary, .ghost-btn, .secondary, .danger, .refresh-btn, .primary-btn, .home-link, .finish-btn, .map-refresh-btn) {
+  transition: transform 150ms ease;
+}
+
+:where(.primary, .ghost-btn, .secondary, .danger, .refresh-btn, .primary-btn, .home-link, .finish-btn, .map-refresh-btn):hover:not(:disabled):not([aria-disabled="true"]) {
+  transform: translateY(-2px);
+}
+
 :where(button):hover:not(:disabled),
 :where(a, [role="button"]):hover {
   outline: 2px solid var(--color-accent);
