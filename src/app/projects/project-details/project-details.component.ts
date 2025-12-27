@@ -138,12 +138,15 @@ export class ProjectDetailsComponent implements OnInit {
             this.locationPendingSave = false;
             this.locationMessage = 'Add an address to place a marker.';
             this.locationError = '';
-          } else if (addressChanged) {
-            this.locationCoordinates = null;
-            this.locationPendingSave = false;
-            this.locationMessage = 'Looking up address...';
-            this.locationError = '';
+            return;
           }
+          if (!addressChanged) {
+            return;
+          }
+          this.locationCoordinates = null;
+          this.locationPendingSave = false;
+          this.locationMessage = 'Looking up address...';
+          this.locationError = '';
           this.requestGeocode(nextAddress, 450);
         });
 
