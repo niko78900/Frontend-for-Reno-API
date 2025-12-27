@@ -2,7 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { debounceTime, distinctUntilChanged, finalize } from 'rxjs/operators';
+import { of } from 'rxjs';
+import { debounceTime, distinctUntilChanged, finalize, map, switchMap } from 'rxjs/operators';
 import { ContractorService } from '../../services/contractor.service';
 import { ProjectService } from '../../services/project.service';
 import { Contractor, Project } from '../models/project.model';
@@ -69,41 +70,48 @@ export class ProjectCreateComponent implements OnInit {
 
   private setupAddressWatcher(): void {
     this.projectForm.get('address')?.valueChanges
-      .pipe(debounceTime(450), distinctUntilChanged())
-      .subscribe((value) => {
-        const nextAddress = String(value ?? '').trim();
-        if (!nextAddress) {
-          this.locationCoordinates = null;
-          this.locationMessage = 'Add an address to drop a marker on the map.';
-          this.locationError = '';
+      .pipe(
+        map((value) => String(value ?? '').trim()),
+        distinctUntilChanged(),
+        switchMap((address) => {
+          if (!address) {
+            this.locationCoordinates = null;
+            this.locationMessage = 'Add an address to drop a marker on the map.';
+            this.locationError = '';
+            this.geocodingAddress = false;
+            return of({ address, result: null, skipped: true });
+          }
+          return of(address).pipe(
+            debounceTime(450),
+            switchMap((debouncedAddress) => this.geocodeAddress(debouncedAddress).pipe(
+              map((result) => ({ address: debouncedAddress, result, skipped: false }))
+            ))
+          );
+        })
+      )
+      .subscribe(({ result, skipped }) => {
+        if (skipped) {
           return;
         }
-        this.geocodeAddress(nextAddress);
+        if (!result) {
+          this.locationError = 'We could not locate that address. Drop the marker on the map manually.';
+          return;
+        }
+        this.locationCoordinates = {
+          latitude: result.latitude,
+          longitude: result.longitude
+        };
+        this.locationMessage = 'Marker placed from the address. Drag to refine the exact spot.';
       });
   }
 
-  private geocodeAddress(address: string): void {
+  private geocodeAddress(address: string) {
     this.geocodingAddress = true;
     this.locationError = '';
-    this.geocodingService.geocodeAddress(address)
-      .pipe(finalize(() => this.geocodingAddress = false))
-      .subscribe({
-        next: (result) => {
-          if (!result) {
-            this.locationError = 'We could not locate that address. Drop the marker on the map manually.';
-            return;
-          }
-          this.locationCoordinates = {
-            latitude: result.latitude,
-            longitude: result.longitude
-          };
-          this.locationMessage = 'Marker placed from the address. Drag to refine the exact spot.';
-        },
-        error: (err) => {
-          console.error('Geocoding failed', err);
-          this.locationError = 'We could not look up this address. Place the marker manually.';
-        }
-      });
+    return this.geocodingService.geocodeAddress(address)
+      .pipe(finalize(() => {
+        this.geocodingAddress = false;
+      }));
   }
 
   onCoordinatesChange(coords: ProjectCoordinates): void {

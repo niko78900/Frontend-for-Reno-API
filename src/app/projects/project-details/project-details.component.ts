@@ -3,13 +3,19 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ProjectService } from '../../services/project.service';
 import { Project, Task, TaskStatus, Contractor, ContractorExpertise } from '../models/project.model';
-import { debounceTime, distinctUntilChanged, finalize } from 'rxjs/operators';
+import { of, Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, finalize, map, switchMap } from 'rxjs/operators';
 import { TaskService } from '../../services/task.service';
 import { ContractorService } from '../../services/contractor.service';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 import { calculateEtaDays } from '../utils/eta.util';
 import { GeocodingService } from '../../services/geocoding.service';
 import { ProjectCoordinates, ProjectLocationMapComponent } from '../location-map/project-location-map.component';
+
+type GeocodeRequest = {
+  address: string;
+  debounceMs: number;
+};
 
 @Component({
   selector: 'app-project-details',
@@ -59,6 +65,7 @@ export class ProjectDetailsComponent implements OnInit {
   geocodingAddress = false;
   locationSaving = false;
   locationPendingSave = false;
+  private geocodeRequests = new Subject<GeocodeRequest>();
   private pendingContractorId: string | null = null;
   private baseEtaWeeks: number | null = null;
   settingsOpen = false;
@@ -117,7 +124,7 @@ export class ProjectDetailsComponent implements OnInit {
     });
 
     this.projectForm.get('address')?.valueChanges
-      .pipe(debounceTime(450), distinctUntilChanged())
+      .pipe(distinctUntilChanged())
       .subscribe((value) => {
         if (this.isFieldLocked('address')) {
           this.resetLockedField('address');
@@ -129,9 +136,8 @@ export class ProjectDetailsComponent implements OnInit {
           this.locationPendingSave = false;
           this.locationMessage = 'Add an address to place a marker.';
           this.locationError = '';
-          return;
         }
-        this.geocodeAddress(nextAddress);
+        this.requestGeocode(nextAddress, 450);
       });
 
     this.projectForm.get('budget')?.valueChanges.subscribe(() => {
@@ -139,6 +145,8 @@ export class ProjectDetailsComponent implements OnInit {
         this.resetLockedField('budget');
       }
     });
+
+    this.setupGeocodeStream();
   }
 
   ngOnInit() {
@@ -578,7 +586,7 @@ export class ProjectDetailsComponent implements OnInit {
       this.locationError = 'Enter an address first to place the marker.';
       return;
     }
-    this.geocodeAddress(address);
+    this.requestGeocode(address);
   }
 
   saveLocation(): void {
@@ -612,28 +620,48 @@ export class ProjectDetailsComponent implements OnInit {
       });
   }
 
-  private geocodeAddress(address: string): void {
-    this.geocodingAddress = true;
-    this.locationError = '';
-    this.geocodingService.geocodeAddress(address)
-      .pipe(finalize(() => this.geocodingAddress = false))
-      .subscribe({
-        next: (result) => {
-          if (!result) {
-            this.locationError = 'We could not locate that address. Drag the marker into place.';
-            return;
+  private requestGeocode(address: string, debounceMs = 0): void {
+    this.geocodeRequests.next({ address, debounceMs });
+  }
+
+  private setupGeocodeStream(): void {
+    this.geocodeRequests
+      .pipe(
+        switchMap(({ address, debounceMs }) => {
+          const trimmedAddress = String(address ?? '').trim();
+          if (!trimmedAddress) {
+            this.geocodingAddress = false;
+            return of({ address: trimmedAddress, result: null, skipped: true });
           }
-          this.locationCoordinates = {
-            latitude: result.latitude,
-            longitude: result.longitude
-          };
-          this.locationPendingSave = true;
-          this.locationMessage = 'Marker placed from the address. Save to confirm coordinates.';
-        },
-        error: (err) => {
-          console.error('Geocoding failed', err);
-          this.locationError = 'We could not look up this address. Place the marker manually.';
+          return of(trimmedAddress).pipe(
+            debounceTime(debounceMs),
+            switchMap((debouncedAddress) => {
+              this.geocodingAddress = true;
+              this.locationError = '';
+              return this.geocodingService.geocodeAddress(debouncedAddress).pipe(
+                map((result) => ({ address: debouncedAddress, result, skipped: false })),
+                finalize(() => {
+                  this.geocodingAddress = false;
+                })
+              );
+            })
+          );
+        })
+      )
+      .subscribe(({ result, skipped }) => {
+        if (skipped) {
+          return;
         }
+        if (!result) {
+          this.locationError = 'We could not locate that address. Drag the marker into place.';
+          return;
+        }
+        this.locationCoordinates = {
+          latitude: result.latitude,
+          longitude: result.longitude
+        };
+        this.locationPendingSave = true;
+        this.locationMessage = 'Marker placed from the address. Save to confirm coordinates.';
       });
   }
 
@@ -649,7 +677,7 @@ export class ProjectDetailsComponent implements OnInit {
       this.locationMessage = 'Add an address to place a marker for this project.';
       this.locationPendingSave = false;
       if (project?.address && !this.geocodingAddress) {
-        this.geocodeAddress(project.address);
+        this.requestGeocode(project.address);
       }
     }
   }
