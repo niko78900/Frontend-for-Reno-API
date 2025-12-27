@@ -183,7 +183,7 @@ export class ProjectDetailsComponent implements OnInit {
 
   openSettings(): void {
     this.settingsOpen = true;
-    if (!this.contractors.length && (this.project?.contractor || this.project?.contractorName)) {
+    if (!this.contractors.length && (this.project?.contractorId || this.project?.contractor || this.project?.contractorName)) {
       this.loadContractors();
     }
     this.ensureContractorSelection();
@@ -928,6 +928,14 @@ export class ProjectDetailsComponent implements OnInit {
   }
 
   private getProjectContractorId(): string | undefined {
+    const contractorId = this.project?.contractorId;
+    if (typeof contractorId === 'string') {
+      const trimmed = contractorId.trim();
+      return trimmed ? trimmed : undefined;
+    }
+    if (typeof contractorId === 'number') {
+      return String(contractorId);
+    }
     return this.getContractorId(this.project?.contractor as unknown);
   }
 
@@ -1011,7 +1019,7 @@ export class ProjectDetailsComponent implements OnInit {
   }
 
   private setProjectFinished(project?: Project): void {
-    const finishedFlag = project?.finished === true || (project?.progress ?? 0) >= 100;
+    const finishedFlag = project?.finished === true;
     this.projectFinished = finishedFlag;
     if (finishedFlag && project) {
       project.progress = Math.max(project.progress ?? 0, 100);

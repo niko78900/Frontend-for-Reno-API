@@ -142,7 +142,7 @@ export class ProjectListComponent implements OnInit {
   }
 
   private getContractorExpertise(project: Project): ContractorExpertise | undefined {
-    const contractorId = this.getContractorId(project.contractor as unknown);
+    const contractorId = this.getProjectContractorId(project);
     const contractorName = project.contractorName ?? this.getContractorName(project.contractor as unknown);
     if (!contractorId && !contractorName) {
       return undefined;
@@ -157,6 +157,18 @@ export class ProjectListComponent implements OnInit {
       return undefined;
     }
     return this.contractors.find(c => c.fullName === contractorName)?.expertise;
+  }
+
+  private getProjectContractorId(project: Project): string | undefined {
+    const contractorId = project.contractorId;
+    if (typeof contractorId === 'string') {
+      const trimmed = contractorId.trim();
+      return trimmed ? trimmed : undefined;
+    }
+    if (typeof contractorId === 'number') {
+      return String(contractorId);
+    }
+    return this.getContractorId(project.contractor as unknown);
   }
 
   private getContractorId(value: unknown): string | undefined {

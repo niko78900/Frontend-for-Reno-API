@@ -4,10 +4,11 @@ import { Observable } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { Project } from '../projects/models/project.model';
 
-type ProjectApi = Omit<Project, 'id' | 'contractor'> & {
+type ProjectApi = Omit<Project, 'id' | 'contractor' | 'contractorId'> & {
   id?: string | number;
   _id?: string | number;
   contractor?: unknown;
+  contractorId?: unknown;
 };
 
 @Injectable({
@@ -156,16 +157,33 @@ export class ProjectService {
 
     const candidate = raw as ProjectApi;
     const resolvedId = this.normalizeId(candidate.id ?? candidate._id);
-    const { _id, id, contractor, ...rest } = candidate;
+    const { _id, id, contractor, contractorId, ...rest } = candidate;
     const normalized: Project = { ...rest, id: resolvedId ?? '' };
+    const resolvedContractorId = this.normalizeId(contractorId);
+
+    if (resolvedContractorId) {
+      normalized.contractorId = resolvedContractorId;
+      normalized.contractor = resolvedContractorId;
+    }
 
     if (typeof contractor === 'string' || typeof contractor === 'number') {
-      normalized.contractor = String(contractor);
+      if (!normalized.contractorId) {
+        const legacyId = this.normalizeId(contractor);
+        if (legacyId) {
+          normalized.contractorId = legacyId;
+          normalized.contractor = legacyId;
+        }
+      }
     } else if (contractor && typeof contractor === 'object') {
       const contractorRecord = contractor as { id?: unknown; _id?: unknown; fullName?: unknown };
-      const contractorId = this.normalizeId(contractorRecord.id ?? contractorRecord._id);
-      if (contractorId) {
-        normalized.contractor = contractorId;
+      const contractorIdFromRecord = this.normalizeId(contractorRecord.id ?? contractorRecord._id);
+      if (contractorIdFromRecord) {
+        if (!normalized.contractorId) {
+          normalized.contractorId = contractorIdFromRecord;
+        }
+        if (!normalized.contractor) {
+          normalized.contractor = contractorIdFromRecord;
+        }
       }
       const contractorName = contractorRecord.fullName;
       if (typeof contractorName === 'string' && !normalized.contractorName) {
