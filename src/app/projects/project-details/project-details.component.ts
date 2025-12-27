@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ProjectService } from '../../services/project.service';
 import { Project, Task, TaskStatus, Contractor, ContractorExpertise } from '../models/project.model';
 import { of, Subject } from 'rxjs';
@@ -65,6 +65,7 @@ export class ProjectDetailsComponent implements OnInit {
   geocodingAddress = false;
   locationSaving = false;
   locationPendingSave = false;
+  deletingProject = false;
   private geocodeRequests = new Subject<GeocodeRequest>();
   private pendingContractorId: string | null = null;
   private baseEtaWeeks: number | null = null;
@@ -72,6 +73,7 @@ export class ProjectDetailsComponent implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
+    private router: Router,
     private projectService: ProjectService,
     private taskService: TaskService,
     private contractorService: ContractorService,
@@ -194,6 +196,33 @@ export class ProjectDetailsComponent implements OnInit {
 
   closeSettings(): void {
     this.settingsOpen = false;
+  }
+
+  deleteProject(): void {
+    if (!this.project?.id || this.deletingProject) {
+      return;
+    }
+
+    const firstConfirm = window.confirm('Delete this project?');
+    if (!firstConfirm) {
+      return;
+    }
+    const secondConfirm = window.confirm('This will permanently delete the project. Are you sure?');
+    if (!secondConfirm) {
+      return;
+    }
+
+    this.deletingProject = true;
+    this.projectService.deleteProject(this.project.id)
+      .pipe(finalize(() => this.deletingProject = false))
+      .subscribe({
+        next: () => {
+          this.router.navigate(['/projects']);
+        },
+        error: (err) => {
+          console.error('Failed deleting project', err);
+        }
+      });
   }
 
   private fetchProject(id: string): void {

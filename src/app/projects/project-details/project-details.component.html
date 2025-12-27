@@ -72,6 +72,12 @@
       <button type="button" class="primary" (click)="openSettings()" [disabled]="settingsOpen">
         Edit project settings
       </button>
+      <button type="button"
+              class="danger"
+              (click)="deleteProject()"
+              [disabled]="deletingProject || !project?.id">
+        {{ deletingProject ? 'Deleting...' : 'Delete project' }}
+      </button>
     </div>
 
     <div class="modal-backdrop" *ngIf="settingsOpen" (click)="closeSettings()">

@@ -364,13 +364,28 @@
 }
 
 .danger {
-  border: 1px solid var(--color-status-error-text);
-  background: var(--color-status-error-bg);
-  color: var(--color-status-error-text);
+  border: 1px solid #dc2626;
+  background: #ef4444;
+  color: #ffffff;
   padding: 8px 14px;
   border-radius: 999px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.danger:hover:not(:disabled) {
+  border-color: var(--color-status-error-text);
+  background: var(--color-status-error-bg);
+  color: var(--color-status-error-text);
+  outline: 2px solid #ef4444;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+}
+
+.danger:focus-visible {
+  outline: 2px solid #ef4444;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
 }
 
 .danger:disabled {
@@ -664,6 +679,10 @@
 
 .settings-toggle {
   margin: 16px 0 32px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .modal-backdrop {
