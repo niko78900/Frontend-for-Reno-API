@@ -44,7 +44,6 @@ export class ProjectCreateComponent implements OnInit {
       address: [''],
       budget: [0, [Validators.required, Validators.min(1)]],
       eta: [0, [Validators.required, Validators.min(0)]],
-      progress: [0, [Validators.min(0), Validators.max(99)]],
       contractor: ['']
     });
   }
@@ -162,7 +161,7 @@ export class ProjectCreateComponent implements OnInit {
       address: String(this.projectForm.get('address')?.value ?? '').trim() || undefined,
       budget,
       contractor: contractorId,
-      progress: this.clampProgress(this.projectForm.get('progress')?.value),
+      progress: 0,
       eta: this.clampNonNegative(this.projectForm.get('eta')?.value, true),
       number_of_workers: this.autoWorkers,
       latitude: this.locationCoordinates?.latitude,
@@ -248,14 +247,6 @@ export class ProjectCreateComponent implements OnInit {
     }
     const match = this.contractors.find(c => c.id === contractorId);
     return this.toNumber(match?.price);
-  }
-
-  private clampProgress(value: unknown): number {
-    const num = Number(value ?? 0);
-    if (Number.isNaN(num) || num < 0) {
-      return 0;
-    }
-    return Math.min(99, num);
   }
 
   private clampNonNegative(value: unknown, asInteger: boolean): number {
