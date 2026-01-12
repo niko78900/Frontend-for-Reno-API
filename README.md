@@ -47,6 +47,10 @@ To use a different key locally, create `public/config.local.json` (gitignored) w
 Open a project detail page and use **Manage images** to view the gallery, upload new images,
 or delete existing ones. Uploads accept a file plus optional description and uploader name.
 
+Uploads are capped at 50 images per project (the UI blocks uploads at the limit). The UI
+accepts `image/*` files and warns if the file type is unknown, but the backend validates
+image contents by file bytes and returns 400 for invalid images or limit violations.
+
 Images are served by the backend under `/uploads/**`; the app uses the returned `url` directly
 and only attaches `X-API-KEY` to `/api/**` requests.
 

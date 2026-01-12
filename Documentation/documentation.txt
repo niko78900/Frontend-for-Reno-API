@@ -127,6 +127,8 @@ Images
 - POST /api/images/upload (multipart/form-data: projectId, file, description?, uploadedBy?)
 - POST /api/images (JSON: projectId, url, description?, uploadedBy?)
 - DELETE /api/images/{id}
+- Uploads are capped at 50 images per project (backend returns 400 when exceeded).
+- Backend validates image bytes; spoofed files return 400.
 
 Request vs response naming
 --------------------------
@@ -156,6 +158,8 @@ Project details
 - Finish project uses the explicit /finished endpoint.
 - Address changes trigger geocoding; opening settings does not move the marker unless the user edits the address.
 - Manage images modal shows the image gallery, upload form, delete actions, and full-size preview.
+- Image uploads pre-check the current image count and block at 50 with a clear message.
+- If file type is missing/unknown, the UI warns and the backend still validates image bytes.
 
 Map and Geocoding Behavior
 --------------------------
@@ -185,6 +189,7 @@ Error Handling and UX
 - Failed geocoding shows a friendly message and keeps the marker manual.
 - API errors are logged and surfaced in the UI where appropriate.
 - Image requests show status-aware errors for 400, 401, 404, and 500 responses.
+- Upload 400s surface "Invalid image file or limit exceeded."
 
 Requirements Alignment (frontend guidelines)
 --------------------------------------------
