@@ -281,6 +281,7 @@
               </button>
             </div>
             <p *ngIf="imageUploadError" class="error-text">{{ imageUploadError }}</p>
+            <p *ngIf="imageUploadWarning" class="warning-text">{{ imageUploadWarning }}</p>
           </div>
 
           <div *ngIf="imagesLoading" class="status state-loading detail-status">

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ProjectService } from '../../services/project.service';
 import { Project, Task, TaskStatus, Contractor, ContractorExpertise } from '../models/project.model';
-import { of, Subject } from 'rxjs';
+import { EMPTY, of, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, finalize, map, switchMap } from 'rxjs/operators';
 import { TaskService } from '../../services/task.service';
 import { ContractorService } from '../../services/contractor.service';
@@ -45,6 +45,7 @@ export class ProjectDetailsComponent implements OnInit {
   imagesLoading = false;
   imagesError = '';
   imageUploadError = '';
+  imageUploadWarning = '';
   imageDeleteError = '';
   imageUploading = false;
   imageDeleting: Record<string, boolean> = {};
@@ -85,6 +86,7 @@ export class ProjectDetailsComponent implements OnInit {
   imagesOpen = false;
   previewImage: ProjectImage | null = null;
   private readonly apiBaseUrl: string;
+  private readonly maxImagesPerProject = 50;
 
   @ViewChild('imageFileInput') imageFileInput?: ElementRef<HTMLInputElement>;
 
@@ -344,12 +346,36 @@ export class ProjectDetailsComponent implements OnInit {
   onImageFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement | null;
     const file = input?.files?.length ? input.files[0] : null;
-    this.selectedImageFile = file ?? null;
     this.imageUploadError = '';
+    this.imageUploadWarning = '';
+
+    if (!file) {
+      this.selectedImageFile = null;
+      return;
+    }
+
+    const type = String(file.type ?? '').toLowerCase().trim();
+    const hasKnownType = Boolean(type) && type !== 'application/octet-stream';
+
+    if (hasKnownType && !type.startsWith('image/')) {
+      this.selectedImageFile = null;
+      this.imageUploadError = 'Please choose a valid image file.';
+      if (this.imageFileInput) {
+        this.imageFileInput.nativeElement.value = '';
+      }
+      return;
+    }
+
+    if (!hasKnownType) {
+      this.imageUploadWarning = 'File type not detected. The server will validate the image contents.';
+    }
+
+    this.selectedImageFile = file;
   }
 
   clearImageSelection(): void {
     this.selectedImageFile = null;
+    this.imageUploadWarning = '';
     if (this.imageFileInput) {
       this.imageFileInput.nativeElement.value = '';
     }
@@ -381,10 +407,26 @@ export class ProjectDetailsComponent implements OnInit {
       formData.append('uploadedBy', uploadedBy);
     }
 
-    this.imageService.uploadImage(formData)
-      .pipe(finalize(() => this.imageUploading = false))
+    this.imageService.getImagesByProject(this.project.id)
+      .pipe(
+        map((images) => {
+          this.images = images ?? [];
+          return this.images;
+        }),
+        switchMap((images) => {
+          if ((images?.length ?? 0) >= this.maxImagesPerProject) {
+            this.imageUploadError = 'Image limit reached (50 max)';
+            return EMPTY;
+          }
+          return this.imageService.uploadImage(formData);
+        }),
+        finalize(() => this.imageUploading = false)
+      )
       .subscribe({
         next: (image) => {
+          if (!image) {
+            return;
+          }
           this.addImageToGallery(image);
           this.imageForm.reset({ description: '', uploadedBy: '' });
           this.clearImageSelection();
@@ -1283,7 +1325,7 @@ export class ProjectDetailsComponent implements OnInit {
     const status = (err as { status?: number })?.status;
     if (status === 400) {
       if (action === 'upload') {
-        return 'Upload failed: missing file or invalid project.';
+        return 'Invalid image file or limit exceeded.';
       }
       return 'Bad request. Please check the project details and try again.';
     }

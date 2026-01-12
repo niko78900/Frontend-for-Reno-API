@@ -677,6 +677,11 @@
   font-size: 0.8rem;
 }
 
+.warning-text {
+  color: var(--color-status-working-text);
+  font-size: 0.8rem;
+}
+
 .settings-toggle {
   margin: 16px 0 32px;
   display: flex;
