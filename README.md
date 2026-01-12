@@ -28,6 +28,20 @@ ng serve
 
 Then open `http://localhost:4200/`.
 
+## API key config
+
+The app loads API settings from `public/config.json` at startup. The default dev key is
+`dev-local-key` and the base URL is `http://localhost:8080`.
+
+To use a different key locally, create `public/config.local.json` (gitignored) with:
+
+```json
+{
+  "apiBaseUrl": "http://localhost:8080",
+  "apiKey": "dev-local-key"
+}
+```
+
 ## Backend
 
 The backend is provided separately in the Spring Boot repo: https://github.com/niko78900/RenoAPI

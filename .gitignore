@@ -39,6 +39,7 @@ testem.log
 __screenshots__/
 Documentation/toDo.txt
 Documentation/requirements.txt
+public/config.local.json
 
 # System files
 .DS_Store
