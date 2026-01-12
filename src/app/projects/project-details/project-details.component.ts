@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ProjectService } from '../../services/project.service';
@@ -11,6 +11,9 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } 
 import { calculateEtaDays } from '../utils/eta.util';
 import { GeocodingService } from '../../services/geocoding.service';
 import { ProjectCoordinates, ProjectLocationMapComponent } from '../location-map/project-location-map.component';
+import { ImageService } from '../../services/image.service';
+import { ProjectImage } from '../models/image.model';
+import { APP_CONFIG, AppConfig } from '../../config/app-config';
 
 type GeocodeRequest = {
   address: string;
@@ -38,12 +41,21 @@ export class ProjectDetailsComponent implements OnInit {
   taskStatusDraft: Record<string, TaskStatus> = {};
   taskStatusSaving: Record<string, boolean> = {};
   taskRemoving: Record<string, boolean> = {};
+  images: ProjectImage[] = [];
+  imagesLoading = false;
+  imagesError = '';
+  imageUploadError = '';
+  imageDeleteError = '';
+  imageUploading = false;
+  imageDeleting: Record<string, boolean> = {};
+  selectedImageFile: File | null = null;
   projectFinished = false;
   finishProjectSaving = false;
   readonly taskStatuses: TaskStatus[] = ['NOT_STARTED', 'WORKING', 'FINISHED', 'CANCELED'];
 
   projectForm: FormGroup;
   taskForm: FormGroup;
+  imageForm: FormGroup;
   contractorControl = new FormControl('');
   fieldSaving = {
     name: false,
@@ -70,6 +82,11 @@ export class ProjectDetailsComponent implements OnInit {
   private pendingContractorId: string | null = null;
   private baseEtaWeeks: number | null = null;
   settingsOpen = false;
+  imagesOpen = false;
+  previewImage: ProjectImage | null = null;
+  private readonly apiBaseUrl: string;
+
+  @ViewChild('imageFileInput') imageFileInput?: ElementRef<HTMLInputElement>;
 
   constructor(
     private route: ActivatedRoute,
@@ -78,6 +95,8 @@ export class ProjectDetailsComponent implements OnInit {
     private taskService: TaskService,
     private contractorService: ContractorService,
     private geocodingService: GeocodingService,
+    private imageService: ImageService,
+    @Inject(APP_CONFIG) appConfig: AppConfig,
     private fb: FormBuilder
   ) {
     this.projectForm = this.fb.group({
@@ -92,6 +111,11 @@ export class ProjectDetailsComponent implements OnInit {
       name: ['', [Validators.required]],
       status: ['NOT_STARTED', [Validators.required]]
     });
+    this.imageForm = this.fb.group({
+      description: [''],
+      uploadedBy: ['']
+    });
+    this.apiBaseUrl = (appConfig?.apiBaseUrl ?? 'http://localhost:8080').trim().replace(/\/+$/, '');
 
     this.contractorControl.valueChanges.subscribe((value) => {
       if (this.isLocked()) {
@@ -183,10 +207,12 @@ export class ProjectDetailsComponent implements OnInit {
       this.loadContractors();
     }
 
+    this.loadImages(id);
     this.fetchProject(id);
   }
 
   openSettings(): void {
+    this.imagesOpen = false;
     this.settingsOpen = true;
     if (!this.contractors.length && (this.project?.contractorId || this.project?.contractor || this.project?.contractorName)) {
       this.loadContractors();
@@ -196,6 +222,17 @@ export class ProjectDetailsComponent implements OnInit {
 
   closeSettings(): void {
     this.settingsOpen = false;
+  }
+
+  openImages(): void {
+    this.settingsOpen = false;
+    this.previewImage = null;
+    this.imagesOpen = true;
+  }
+
+  closeImages(): void {
+    this.imagesOpen = false;
+    this.previewImage = null;
   }
 
   deleteProject(): void {
@@ -279,6 +316,140 @@ export class ProjectDetailsComponent implements OnInit {
 
   trackByTaskId(_: number, task: Task): string {
     return task.id;
+  }
+
+  private loadImages(projectId: string): void {
+    this.imagesLoading = true;
+    this.imagesError = '';
+    this.imageUploadError = '';
+    this.imageDeleteError = '';
+
+    this.imageService.getImagesByProject(projectId)
+      .pipe(finalize(() => this.imagesLoading = false))
+      .subscribe({
+        next: (images) => {
+          this.images = images ?? [];
+        },
+        error: (err) => {
+          console.error('Failed loading project images', err);
+          this.imagesError = this.getImageErrorMessage(err, 'load');
+        }
+      });
+  }
+
+  trackByImageId(_: number, image: ProjectImage): string {
+    return image.id;
+  }
+
+  onImageFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.length ? input.files[0] : null;
+    this.selectedImageFile = file ?? null;
+    this.imageUploadError = '';
+  }
+
+  clearImageSelection(): void {
+    this.selectedImageFile = null;
+    if (this.imageFileInput) {
+      this.imageFileInput.nativeElement.value = '';
+    }
+  }
+
+  uploadImage(): void {
+    if (!this.project?.id) {
+      this.imageUploadError = 'Project id is missing.';
+      return;
+    }
+    if (!this.selectedImageFile) {
+      this.imageUploadError = 'Select an image file to upload.';
+      return;
+    }
+
+    this.imageUploading = true;
+    this.imageUploadError = '';
+
+    const formData = new FormData();
+    formData.append('projectId', this.project.id);
+    formData.append('file', this.selectedImageFile);
+
+    const description = String(this.imageForm.get('description')?.value ?? '').trim();
+    if (description) {
+      formData.append('description', description);
+    }
+    const uploadedBy = String(this.imageForm.get('uploadedBy')?.value ?? '').trim();
+    if (uploadedBy) {
+      formData.append('uploadedBy', uploadedBy);
+    }
+
+    this.imageService.uploadImage(formData)
+      .pipe(finalize(() => this.imageUploading = false))
+      .subscribe({
+        next: (image) => {
+          this.addImageToGallery(image);
+          this.imageForm.reset({ description: '', uploadedBy: '' });
+          this.clearImageSelection();
+        },
+        error: (err) => {
+          console.error('Failed uploading image', err);
+          this.imageUploadError = this.getImageErrorMessage(err, 'upload');
+        }
+      });
+  }
+
+  deleteImage(image: ProjectImage): void {
+    if (!image?.id) {
+      return;
+    }
+
+    const confirmed = window.confirm('Delete this image?');
+    if (!confirmed) {
+      return;
+    }
+
+    this.imageDeleteError = '';
+    this.imageDeleting[image.id] = true;
+
+    this.imageService.deleteImage(image.id)
+      .pipe(finalize(() => {
+        delete this.imageDeleting[image.id];
+      }))
+      .subscribe({
+        next: () => {
+          this.images = this.images.filter(item => item.id !== image.id);
+          if (this.previewImage?.id === image.id) {
+            this.previewImage = null;
+          }
+        },
+        error: (err) => {
+          console.error('Failed deleting image', err);
+          this.imageDeleteError = this.getImageErrorMessage(err, 'delete');
+        }
+      });
+  }
+
+  getImageUrl(image: ProjectImage): string {
+    const url = String(image?.url ?? '').trim();
+    if (!url) {
+      return '';
+    }
+    if (/^https?:\/\//i.test(url)) {
+      return url;
+    }
+    if (url.startsWith('/')) {
+      return `${this.apiBaseUrl}${url}`;
+    }
+    return `${this.apiBaseUrl}/${url}`;
+  }
+
+  openImagePreview(image: ProjectImage): void {
+    if (!image?.url) {
+      return;
+    }
+    this.previewImage = image;
+  }
+
+  closeImagePreview(): void {
+    this.previewImage = null;
   }
 
   openTaskPanel(): void {
@@ -1092,6 +1263,52 @@ export class ProjectDetailsComponent implements OnInit {
     if (eta !== undefined && eta !== null && eta > 0) {
       this.baseEtaWeeks = eta;
     }
+  }
+
+  private addImageToGallery(image: ProjectImage): void {
+    if (!image) {
+      return;
+    }
+    const existingIndex = this.images.findIndex(item => item.id === image.id);
+    if (existingIndex >= 0) {
+      const next = [...this.images];
+      next[existingIndex] = image;
+      this.images = next;
+      return;
+    }
+    this.images = [...this.images, image];
+  }
+
+  private getImageErrorMessage(err: unknown, action: 'load' | 'upload' | 'delete'): string {
+    const status = (err as { status?: number })?.status;
+    if (status === 400) {
+      if (action === 'upload') {
+        return 'Upload failed: missing file or invalid project.';
+      }
+      return 'Bad request. Please check the project details and try again.';
+    }
+    if (status === 401) {
+      return 'API key missing or invalid.';
+    }
+    if (status === 404) {
+      return action === 'delete' ? 'Image not found.' : 'Project not found.';
+    }
+    if (status === 500) {
+      if (action === 'upload') {
+        return 'Upload failed due to a server error.';
+      }
+      if (action === 'delete') {
+        return 'Server error while deleting image.';
+      }
+      return 'Server error while loading images.';
+    }
+    if (action === 'upload') {
+      return 'Unable to upload image. Please try again.';
+    }
+    if (action === 'delete') {
+      return 'Unable to delete image. Please try again.';
+    }
+    return 'Unable to load images. Please try again.';
   }
 
 }

@@ -73,9 +73,15 @@
         Edit project settings
       </button>
       <button type="button"
+              class="ghost-btn"
+              (click)="openImages()"
+              [disabled]="imagesOpen || !project.id">
+        Manage images
+      </button>
+      <button type="button"
               class="danger"
               (click)="deleteProject()"
-              [disabled]="deletingProject || !project?.id">
+              [disabled]="deletingProject || !project.id">
         {{ deletingProject ? 'Deleting...' : 'Delete project' }}
       </button>
     </div>
@@ -226,6 +232,111 @@
           <button type="button" class="primary" (click)="applyContractor()" [disabled]="contractorSaving || isLocked()">
             {{ contractorSaving ? 'Saving...' : 'Save Contractor' }}
           </button>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" *ngIf="imagesOpen" (click)="closeImages()">
+      <section class="settings settings-modal images-modal" [formGroup]="imageForm" (click)="$event.stopPropagation()">
+        <header class="settings-modal__header">
+          <div>
+            <h2>Project Images</h2>
+            <p class="image-gallery__hint">Upload progress shots or inspiration photos tied to this project.</p>
+          </div>
+          <div class="settings-modal__actions">
+            <span class="badge badge--muted">{{ images.length }}</span>
+            <button type="button" class="link-btn" (click)="closeImages()">Close</button>
+          </div>
+        </header>
+
+        <section class="image-gallery">
+          <div class="image-upload">
+            <div class="image-upload__fields">
+              <label class="input-block">
+                <span>Image file</span>
+                <input #imageFileInput type="file" accept="image/*" (change)="onImageFileSelected($event)">
+                <small class="image-upload__filename" *ngIf="selectedImageFile">{{ selectedImageFile.name }}</small>
+              </label>
+              <label class="input-block">
+                <span>Description (optional)</span>
+                <input type="text" formControlName="description" placeholder="Kitchen teardown">
+              </label>
+              <label class="input-block">
+                <span>Uploaded by (optional)</span>
+                <input type="text" formControlName="uploadedBy" placeholder="Alex">
+              </label>
+            </div>
+            <div class="image-upload__actions">
+              <button type="button"
+                      class="primary"
+                      (click)="uploadImage()"
+                      [disabled]="imageUploading || !selectedImageFile || !project.id">
+                {{ imageUploading ? 'Uploading...' : 'Upload image' }}
+              </button>
+              <button type="button"
+                      class="ghost-btn"
+                      (click)="clearImageSelection()"
+                      [disabled]="imageUploading || !selectedImageFile">
+                Clear
+              </button>
+            </div>
+            <p *ngIf="imageUploadError" class="error-text">{{ imageUploadError }}</p>
+          </div>
+
+          <div *ngIf="imagesLoading" class="status state-loading detail-status">
+            <span class="dot"></span>
+            <span>Loading images...</span>
+          </div>
+
+          <div *ngIf="!imagesLoading && imagesError" class="status state-error detail-status">
+            {{ imagesError }}
+          </div>
+
+          <p *ngIf="imageDeleteError" class="error-text">{{ imageDeleteError }}</p>
+
+          <p *ngIf="!imagesLoading && !imagesError && !images.length" class="image-empty">
+            No images have been uploaded for this project yet.
+          </p>
+
+          <ul *ngIf="!imagesLoading && !imagesError && images.length" class="image-grid">
+            <li class="image-card" *ngFor="let image of images; trackBy: trackByImageId">
+              <button type="button"
+                      class="image-card__media"
+                      (click)="openImagePreview(image)"
+                      [disabled]="!image.url"
+                      title="View full size">
+                <img [src]="getImageUrl(image)" [alt]="image.description || project.name || 'Project image'">
+              </button>
+              <div class="image-card__body">
+                <p class="image-card__description">{{ image.description || 'No description' }}</p>
+                <div class="image-card__meta">
+                  <span *ngIf="image.uploadedBy">By {{ image.uploadedBy }}</span>
+                  <span *ngIf="image.uploadedAt">Uploaded {{ image.uploadedAt | date:'mediumDate' }}</span>
+                </div>
+                <div class="image-card__actions">
+                  <button type="button"
+                          class="danger"
+                          (click)="deleteImage(image)"
+                          [disabled]="imageDeleting[image.id]">
+                    {{ imageDeleting[image.id] ? 'Deleting...' : 'Delete' }}
+                  </button>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </section>
+
+        <div class="image-preview"
+             *ngIf="previewImage"
+             (click)="closeImagePreview(); $event.stopPropagation()">
+          <div class="image-preview__frame" (click)="$event.stopPropagation()">
+            <img class="image-preview__img"
+                 [src]="getImageUrl(previewImage)"
+                 [alt]="previewImage.description || project.name || 'Project image'">
+            <button type="button" class="ghost-btn image-preview__close" (click)="closeImagePreview()">
+              Close preview
+            </button>
+          </div>
         </div>
       </section>
     </div>
