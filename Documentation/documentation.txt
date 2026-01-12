@@ -24,25 +24,35 @@ Running the App
 - ng serve
 - Frontend default: http://localhost:4200
 
+Configuration and API Key
+-------------------------
+- API base URL and API key are loaded at startup from public/config.json.
+- Default dev key: dev-local-key.
+- Local override: public/config.local.json (gitignored) with apiBaseUrl and apiKey.
+- X-API-KEY is attached only to /api/** requests; /uploads/** is public.
+
 Backend
 -------
 - Backend repo: https://github.com/niko78900/RenoAPI
 - Base URL: http://localhost:8080
 - CORS is expected for http://localhost:4200
+- Backend expects X-API-KEY on /api/** requests.
 
 Project Structure (frontend)
 ----------------------------
+- src/app/config/app-config.ts: runtime API configuration loader
+- src/app/interceptors/api-key.interceptor.ts: attaches X-API-KEY to /api/** calls
 - src/app/app.routes.ts: route table
 - src/app/home/: landing page and map overview
 - src/app/projects/projects-list/: list view
 - src/app/projects/project-details/: details, settings, and tasks
 - src/app/projects/project-create/: create flow
 - src/app/projects/location-map/: Leaflet map component
-- src/app/projects/models/: Project, Task, and Contractor interfaces
+- src/app/projects/models/: Project, Task, Contractor, and Image interfaces
 - src/app/projects/utils/: ETA calculation utilities
-- src/app/services/: API and geocoding services
+- src/app/services/: API, image, and geocoding services
 - src/styles.css: theme and global styling
-- public/: static assets
+- public/: static assets and runtime config
 - Documentation/: requirements and notes
 
 Routing
@@ -67,6 +77,10 @@ Task:
 
 Contractor:
 - id, fullName, price, expertise (JUNIOR | APPRENTICE | SENIOR)
+
+ProjectImage:
+- id, projectId, url
+- description, uploadedAt, uploadedBy
 
 ID Normalization
 ----------------
@@ -108,6 +122,12 @@ Contractors
 - POST /api/contractors
 - DELETE /api/contractors/{id}
 
+Images
+- GET /api/images/project/{projectId}
+- POST /api/images/upload (multipart/form-data: projectId, file, description?, uploadedBy?)
+- POST /api/images (JSON: projectId, url, description?, uploadedBy?)
+- DELETE /api/images/{id}
+
 Request vs response naming
 --------------------------
 - Project requests use contractor and number_of_workers (snake case).
@@ -135,6 +155,7 @@ Project details
 - Task panel supports create, update status, and delete.
 - Finish project uses the explicit /finished endpoint.
 - Address changes trigger geocoding; opening settings does not move the marker unless the user edits the address.
+- Manage images modal shows the image gallery, upload form, delete actions, and full-size preview.
 
 Map and Geocoding Behavior
 --------------------------
@@ -163,6 +184,7 @@ Error Handling and UX
 - Each major async path has loading and error states.
 - Failed geocoding shows a friendly message and keeps the marker manual.
 - API errors are logged and surfaced in the UI where appropriate.
+- Image requests show status-aware errors for 400, 401, 404, and 500 responses.
 
 Requirements Alignment (frontend guidelines)
 --------------------------------------------

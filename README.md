@@ -42,6 +42,14 @@ To use a different key locally, create `public/config.local.json` (gitignored) w
 }
 ```
 
+## Project images
+
+Open a project detail page and use **Manage images** to view the gallery, upload new images,
+or delete existing ones. Uploads accept a file plus optional description and uploader name.
+
+Images are served by the backend under `/uploads/**`; the app uses the returned `url` directly
+and only attaches `X-API-KEY` to `/api/**` requests.
+
 ## Backend
 
 The backend is provided separately in the Spring Boot repo: https://github.com/niko78900/RenoAPI
