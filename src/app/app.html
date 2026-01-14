@@ -1,1 +1,35 @@
-<router-outlet></router-outlet>
+<div class="app-shell">
+  <header class="app-header">
+    <a routerLink="/projects" class="brand-link">HomeReno</a>
+    <div class="app-header__right">
+      <ng-container *ngIf="session$ | async as session; else guestNav">
+        <nav class="app-nav">
+          <a routerLink="/projects" routerLinkActive="active">Projects</a>
+          <a *ngIf="session.role === 'ADMIN'" routerLink="/admin/users" routerLinkActive="active">Approvals</a>
+        </nav>
+        <div class="app-session">
+          <span class="app-user">{{ session.username }} · {{ session.role }}</span>
+          <button type="button" class="app-logout" (click)="logout()">Logout</button>
+        </div>
+      </ng-container>
+      <ng-template #guestNav>
+        <nav class="app-nav">
+          <a routerLink="/login" routerLinkActive="active">Login</a>
+          <a routerLink="/register" routerLinkActive="active">Register</a>
+        </nav>
+      </ng-template>
+    </div>
+  </header>
+
+  <div *ngIf="message$ | async as message"
+       class="app-message"
+       [class.app-message--error]="message.tone === 'error'"
+       [class.app-message--success]="message.tone === 'success'">
+    <span>{{ message.text }}</span>
+    <button type="button" class="app-message__close" (click)="clearMessage()">Dismiss</button>
+  </div>
+
+  <main class="app-main">
+    <router-outlet></router-outlet>
+  </main>
+</div>

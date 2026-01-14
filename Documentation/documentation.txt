@@ -29,20 +29,25 @@ Configuration and API Key
 - API base URL and API key are loaded at startup from public/config.json.
 - Default dev key: dev-local-key.
 - Local override: public/config.local.json (gitignored) with apiBaseUrl and apiKey.
-- X-API-KEY is attached only to /api/** requests; /uploads/** is public.
+- X-API-KEY is attached to same-origin requests (including /api/** and /uploads/**).
+- Authorization: Bearer <jwt> is attached to /api/** except /api/auth/** and /uploads/**.
+- /uploads/** is public, but still receives X-API-KEY when same-origin.
 
 Backend
 -------
 - Backend repo: https://github.com/niko78900/RenoAPI
 - Base URL: http://localhost:8080
 - CORS is expected for http://localhost:4200
-- Backend expects X-API-KEY on /api/** requests.
+- Backend expects X-API-KEY on /api/** requests and JWT for non-auth endpoints.
 
 Project Structure (frontend)
 ----------------------------
 - src/app/config/app-config.ts: runtime API configuration loader
-- src/app/interceptors/api-key.interceptor.ts: attaches X-API-KEY to /api/** calls
+- src/app/interceptors/api-key.interceptor.ts: attaches X-API-KEY and JWT headers
 - src/app/app.routes.ts: route table
+- src/app/auth/: login, register, and pending approval pages
+- src/app/admin/: admin approval UI
+- src/app/guards/: auth and admin route guards
 - src/app/home/: landing page and map overview
 - src/app/projects/projects-list/: list view
 - src/app/projects/project-details/: details, settings, and tasks
@@ -57,10 +62,22 @@ Project Structure (frontend)
 
 Routing
 -------
-- / -> HomeComponent (map overview)
-- /projects -> ProjectListComponent
-- /projects/new -> ProjectCreateComponent
-- /projects/:id -> ProjectDetailsComponent
+- /login -> LoginComponent
+- /register -> RegisterComponent
+- /pending -> PendingApprovalComponent
+- / -> HomeComponent (map overview, auth required)
+- /projects -> ProjectListComponent (auth required)
+- /projects/new -> ProjectCreateComponent (auth required)
+- /projects/:id -> ProjectDetailsComponent (auth required)
+- /admin/users -> AdminPendingUsersComponent (admin only)
+
+Authentication and Roles
+------------------------
+- Auth endpoints: /api/auth/register and /api/auth/login.
+- Pending accounts return enabled=false on register; login returns 403 until approved.
+- Session data (token, username, role) is stored in localStorage.
+- AuthGuard protects project routes; AdminGuard protects /admin/users.
+- 401 responses clear session and redirect to /login.
 
 Data Models
 -----------
@@ -90,6 +107,14 @@ ID Normalization
 
 API Integration (used by frontend)
 ----------------------------------
+Auth
+- POST /api/auth/register
+- POST /api/auth/login
+
+Admin
+- GET /api/admin/users/pending
+- POST /api/admin/users/{id}/approve
+
 Projects
 - GET /api/projects
 - GET /api/projects/{id}
@@ -124,8 +149,8 @@ Contractors
 
 Images
 - GET /api/images/project/{projectId}
-- POST /api/images/upload (multipart/form-data: projectId, file, description?, uploadedBy?)
-- POST /api/images (JSON: projectId, url, description?, uploadedBy?)
+- POST /api/images/upload (multipart/form-data: projectId, file, description?)
+- POST /api/images (JSON: projectId, url, description?)
 - DELETE /api/images/{id}
 - Uploads are capped at 50 images per project (backend returns 400 when exceeded).
 - Backend validates image bytes; spoofed files return 400.
@@ -203,6 +228,5 @@ Requirements Alignment (frontend guidelines)
 Known Limitations and Assumptions
 ---------------------------------
 - Backend is required for full functionality; it is provided in the RenoAPI repo.
-- No authentication is implemented in the frontend.
 - Project and task consistency follow backend behavior (project.taskIds is authoritative).
 - Geocoding depends on third-party availability (Nominatim).

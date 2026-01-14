@@ -1,0 +1,45 @@
+<section class="admin-page">
+  <div class="admin-card">
+    <header class="admin-header">
+      <div>
+        <p class="eyebrow">Admin</p>
+        <h1>Pending approvals</h1>
+        <p class="subtitle">Review new accounts waiting for approval.</p>
+      </div>
+      <button type="button" class="ghost-btn" (click)="refresh()" [disabled]="loading">
+        Refresh
+      </button>
+    </header>
+
+    <div *ngIf="loading" class="status state-loading">
+      <span class="dot"></span>
+      <span>Loading pending users...</span>
+    </div>
+
+    <div *ngIf="!loading && errorMessage" class="status state-error">
+      {{ errorMessage }}
+    </div>
+
+    <p *ngIf="!loading && !errorMessage && !pendingUsers.length" class="empty-state">
+      No pending users right now.
+    </p>
+
+    <ul *ngIf="!loading && pendingUsers.length" class="pending-list">
+      <li class="pending-item" *ngFor="let user of pendingUsers; trackBy: trackByUserId">
+        <div class="pending-meta">
+          <div>
+            <p class="pending-name">{{ user.username }}</p>
+            <p class="pending-role">{{ user.role }}</p>
+          </div>
+          <p class="pending-date" *ngIf="user.createdAt">Requested {{ user.createdAt | date:'mediumDate' }}</p>
+        </div>
+        <button type="button"
+                class="primary-btn"
+                (click)="approveUser(user)"
+                [disabled]="approving[user.id]">
+          {{ approving[user.id] ? 'Approving...' : 'Approve' }}
+        </button>
+      </li>
+    </ul>
+  </div>
+</section>

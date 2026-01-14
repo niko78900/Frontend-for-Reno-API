@@ -1,0 +1,71 @@
+.pending-page {
+  min-height: calc(100vh - 72px);
+  display: grid;
+  place-items: center;
+  padding: 48px 20px 64px;
+  background: var(--color-home-bg);
+}
+
+.pending-card {
+  width: min(520px, 100%);
+  background: var(--color-surface);
+  padding: 42px;
+  border-radius: 24px;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  font-size: 0.75rem;
+  color: var(--color-text-subtle);
+  margin: 0 0 12px;
+}
+
+h1 {
+  margin: 0 0 12px;
+  color: var(--color-text);
+}
+
+.subtitle {
+  margin: 0 0 24px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.pending-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.primary-btn,
+.ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  border-radius: 999px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.primary-btn {
+  border: none;
+  background: var(--color-accent-gradient);
+  color: var(--color-accent-contrast);
+  box-shadow: var(--shadow-accent);
+}
+
+.ghost-btn {
+  border: 1px solid var(--color-ghost-border);
+  background: var(--color-ghost-bg);
+  color: var(--color-ghost-text);
+}
+
+@media (max-width: 600px) {
+  .pending-card {
+    padding: 32px 24px;
+  }
+}

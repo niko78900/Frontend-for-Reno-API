@@ -1,8 +1,9 @@
-import { Injectable } from '@angular/core';
+import { Inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { Project } from '../projects/models/project.model';
+import { APP_CONFIG, AppConfig } from '../config/app-config';
 
 type ProjectApi = Omit<Project, 'id' | 'contractor' | 'contractorId'> & {
   id?: string | number;
@@ -16,9 +17,15 @@ type ProjectApi = Omit<Project, 'id' | 'contractor' | 'contractorId'> & {
 })
 export class ProjectService {
 
-  private apiUrl = 'http://localhost:8080/api/projects';
+  private apiUrl: string;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    @Inject(APP_CONFIG) appConfig: AppConfig
+  ) {
+    const apiBaseUrl = (appConfig?.apiBaseUrl ?? '').trim().replace(/\/+$/, '');
+    this.apiUrl = apiBaseUrl ? `${apiBaseUrl}/api/projects` : '/api/projects';
+  }
 
   // GET ALL
   getAllProjects(): Observable<Project[]> {

@@ -1,8 +1,9 @@
-import { Injectable } from '@angular/core';
+import { Inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Task } from '../projects/models/project.model';
+import { APP_CONFIG, AppConfig } from '../config/app-config';
 
 type TaskApi = Omit<Task, 'id'> & {
   id?: string | number;
@@ -14,9 +15,15 @@ type TaskApi = Omit<Task, 'id'> & {
 })
 export class TaskService {
 
-  private apiUrl = 'http://localhost:8080/api/tasks';
+  private apiUrl: string;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    @Inject(APP_CONFIG) appConfig: AppConfig
+  ) {
+    const apiBaseUrl = (appConfig?.apiBaseUrl ?? '').trim().replace(/\/+$/, '');
+    this.apiUrl = apiBaseUrl ? `${apiBaseUrl}/api/tasks` : '/api/tasks';
+  }
 
   // GET ALL TASKS
   getAllTasks(): Observable<Task[]> {

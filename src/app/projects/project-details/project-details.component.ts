@@ -114,8 +114,7 @@ export class ProjectDetailsComponent implements OnInit {
       status: ['NOT_STARTED', [Validators.required]]
     });
     this.imageForm = this.fb.group({
-      description: [''],
-      uploadedBy: ['']
+      description: ['']
     });
     this.apiBaseUrl = (appConfig?.apiBaseUrl ?? 'http://localhost:8080').trim().replace(/\/+$/, '');
 
@@ -402,10 +401,6 @@ export class ProjectDetailsComponent implements OnInit {
     if (description) {
       formData.append('description', description);
     }
-    const uploadedBy = String(this.imageForm.get('uploadedBy')?.value ?? '').trim();
-    if (uploadedBy) {
-      formData.append('uploadedBy', uploadedBy);
-    }
 
     this.imageService.getImagesByProject(this.project.id)
       .pipe(
@@ -428,7 +423,7 @@ export class ProjectDetailsComponent implements OnInit {
             return;
           }
           this.addImageToGallery(image);
-          this.imageForm.reset({ description: '', uploadedBy: '' });
+          this.imageForm.reset({ description: '' });
           this.clearImageSelection();
         },
         error: (err) => {

@@ -1,17 +1,28 @@
 import { Component, HostListener } from '@angular/core';
-import { Location } from '@angular/common';
-import { RouterOutlet } from '@angular/router';
+import { CommonModule, Location } from '@angular/common';
+import { RouterModule, RouterOutlet } from '@angular/router';
+import { Observable } from 'rxjs';
+import { AuthService, AuthSession } from './services/auth.service';
+import { AppMessage, AppMessageService } from './services/app-message.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [CommonModule, RouterModule, RouterOutlet],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
 export class App {
   private selectInEditMode: HTMLSelectElement | null = null;
+  readonly session$: Observable<AuthSession | null>;
+  readonly message$: Observable<AppMessage | null>;
 
-  constructor(private location: Location) {
+  constructor(
+    private location: Location,
+    private authService: AuthService,
+    private messageService: AppMessageService
+  ) {
+    this.session$ = this.authService.session$;
+    this.message$ = this.messageService.message$;
     this.enableDarkTheme();
   }
 
@@ -165,5 +176,13 @@ export class App {
 
     event.preventDefault();
     active.click();
+  }
+
+  logout(): void {
+    this.authService.logout();
+  }
+
+  clearMessage(): void {
+    this.messageService.clear();
   }
 }

@@ -1,0 +1,35 @@
+<section class="auth-page">
+  <div class="auth-card">
+    <p class="eyebrow">HomeReno</p>
+    <h1>Sign in</h1>
+    <p class="subtitle">Access your renovation workspace.</p>
+
+    <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
+      <label class="input-block">
+        <span>Username</span>
+        <input type="text" formControlName="username" autocomplete="username" />
+      </label>
+      <label class="input-block">
+        <span>Password</span>
+        <input type="password" formControlName="password" autocomplete="current-password" />
+      </label>
+      <button type="submit" class="primary-btn" [disabled]="loading || form.invalid">
+        {{ loading ? 'Signing in...' : 'Sign in' }}
+      </button>
+    </form>
+
+    <p *ngIf="errorMessage"
+       [class.pending-text]="pendingApproval"
+       [class.error-text]="!pendingApproval">
+      {{ errorMessage }}
+    </p>
+    <p *ngIf="pendingApproval" class="pending-hint">
+      New accounts require admin approval before you can log in.
+    </p>
+
+    <div class="auth-footer">
+      <span>Need an account?</span>
+      <a routerLink="/register">Register</a>
+    </div>
+  </div>
+</section>

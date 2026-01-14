@@ -1,8 +1,9 @@
-import { Injectable } from '@angular/core';
+import { Inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ProjectImage } from '../projects/models/image.model';
+import { APP_CONFIG, AppConfig } from '../config/app-config';
 
 type ImageApi = Omit<ProjectImage, 'id' | 'projectId'> & {
   id?: string | number;
@@ -15,9 +16,15 @@ type ImageApi = Omit<ProjectImage, 'id' | 'projectId'> & {
 })
 export class ImageService {
 
-  private apiUrl = 'http://localhost:8080/api/images';
+  private apiUrl: string;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    @Inject(APP_CONFIG) appConfig: AppConfig
+  ) {
+    const apiBaseUrl = (appConfig?.apiBaseUrl ?? '').trim().replace(/\/+$/, '');
+    this.apiUrl = apiBaseUrl ? `${apiBaseUrl}/api/images` : '/api/images';
+  }
 
   getImagesByProject(projectId: string): Observable<ProjectImage[]> {
     return this.http.get<unknown>(`${this.apiUrl}/project/${projectId}`).pipe(
@@ -35,7 +42,6 @@ export class ImageService {
     projectId: string;
     url: string;
     description?: string;
-    uploadedBy?: string;
   }): Observable<ProjectImage> {
     return this.http.post<unknown>(this.apiUrl, payload).pipe(
       map((response) => this.normalizeImage(response))

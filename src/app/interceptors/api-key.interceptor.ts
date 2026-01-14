@@ -1,33 +1,66 @@
-import { HttpInterceptorFn } from '@angular/common/http';
+import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { catchError, throwError } from 'rxjs';
 import { APP_CONFIG } from '../config/app-config';
+import { AuthService } from '../services/auth.service';
+import { AppMessageService } from '../services/app-message.service';
 
-export const apiKeyInterceptor: HttpInterceptorFn = (request, next) => {
+const isRequestFor = (url: string, root: string): boolean => {
+  if (!root) {
+    return false;
+  }
+  return url === root || url.startsWith(`${root}/`) || url.startsWith(`${root}?`);
+};
+
+const isAbsoluteUrl = (url: string): boolean => /^https?:\/\//i.test(url);
+
+export const apiKeyJwtInterceptor: HttpInterceptorFn = (request, next) => {
   const config = inject(APP_CONFIG);
+  const router = inject(Router);
+  const authService = inject(AuthService);
+  const messageService = inject(AppMessageService);
   const apiKey = config?.apiKey?.trim();
   const apiBaseUrl = config?.apiBaseUrl?.trim().replace(/\/+$/, '');
   const apiRoot = apiBaseUrl ? `${apiBaseUrl}/api` : '';
-  const isAbsoluteApiRequest = apiRoot
-    ? request.url === apiRoot
-      || request.url.startsWith(`${apiRoot}/`)
-      || request.url.startsWith(`${apiRoot}?`)
-    : false;
-  const isRelativeApiRequest = request.url === '/api'
-    || request.url.startsWith('/api/')
-    || request.url.startsWith('/api?');
-  const isApiRequest = isAbsoluteApiRequest || isRelativeApiRequest;
+  const uploadsRoot = apiBaseUrl ? `${apiBaseUrl}/uploads` : '';
+  const isSameOrigin = !isAbsoluteUrl(request.url) || Boolean(apiBaseUrl && request.url.startsWith(apiBaseUrl));
+  const isApiRequest = isRequestFor(request.url, apiRoot) || isRequestFor(request.url, '/api');
+  const isUploadsRequest = isRequestFor(request.url, uploadsRoot) || isRequestFor(request.url, '/uploads');
+  const isAuthRequest = isRequestFor(request.url, `${apiRoot}/auth`) || isRequestFor(request.url, '/api/auth');
+  const isLoginRequest = isRequestFor(request.url, `${apiRoot}/auth/login`) || isRequestFor(request.url, '/api/auth/login');
+  const shouldAttachApiKey = Boolean(apiKey) && isSameOrigin;
 
-  if (!apiKey || !isApiRequest) {
-    return next(request);
+  let headers = request.headers;
+
+  if (shouldAttachApiKey && !headers.has('X-API-KEY')) {
+    headers = headers.set('X-API-KEY', apiKey!);
   }
 
-  if (request.headers.has('X-API-KEY')) {
-    return next(request);
+  const token = authService.getToken();
+  const shouldAttachAuth = Boolean(token) && isSameOrigin && !isAuthRequest && !isUploadsRequest;
+  if (shouldAttachAuth && !headers.has('Authorization')) {
+    headers = headers.set('Authorization', `Bearer ${token}`);
   }
 
-  return next(
-    request.clone({
-      headers: request.headers.set('X-API-KEY', apiKey)
+  const nextRequest = headers === request.headers ? request : request.clone({ headers });
+
+  return next(nextRequest).pipe(
+    catchError((err: HttpErrorResponse) => {
+      if (!isSameOrigin && !isApiRequest && !isUploadsRequest) {
+        return throwError(() => err);
+      }
+
+      if (err.status === 401) {
+        authService.clearSession();
+        router.navigate(['/login']);
+      } else if (err.status === 403 && !isLoginRequest) {
+        messageService.show('Access denied', 'error');
+      }
+
+      return throwError(() => err);
     })
   );
 };
+
+export const apiKeyInterceptor = apiKeyJwtInterceptor;
